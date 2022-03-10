@@ -1,4 +1,7 @@
 import os
+import logging
+
+
 from discord.ext import commands
 
 bot = commands.Bot(command_prefix="!")
@@ -110,11 +113,13 @@ async def open(ctx):
 
 @bot.command()
 async def pgn(ctx):
+
     await ctx.send("pgn isn't yet implemented")
 
 @bot.command()
 async def fen(ctx):
     """Good first try! No stateful interaction with a database or chess.com/lichess api is required"""
+    logging.info("logging test")
     await ctx.send("fen isn't yet implemented")
 
 @bot.command()
@@ -135,4 +140,5 @@ async def addlichess(ctx):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     bot.run(TOKEN)
