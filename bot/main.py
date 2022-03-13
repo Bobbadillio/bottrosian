@@ -55,8 +55,19 @@ async def chess(ctx):
     await ctx.send("linking to chess.com profiles isn't yet implemented")
 
 @bot.command()
-async def lichess(ctx):
-    await ctx.send("linking to lichess.org profiles isn't yet implemented")
+async def lichess(ctx, *args):
+    if len(args)==0:
+        await ctx.send(f"thanks {ctx.author}, but your message {ctx.message} had 0 arguments and is invalid")
+    else:
+        username = args[0]
+        try:
+            client = berserk.Client()
+            profile = client.users.get_public_data("festivity")
+            await ctx.send(f"request to link {username} found profile with ratings {profile.get('perfs','')}")
+        except berserk.exceptions.ResponseError as e:
+            await ctx.send(f"request to link {username} failed with error {e}")
+        except Exception as e:
+            await ctx.send(f"request to link {username} failed with unexpected error {e}")
 
 @bot.command()
 async def update(ctx):
