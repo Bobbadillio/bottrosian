@@ -1,5 +1,6 @@
 import os
 import logging
+import berserk
 
 
 from discord.ext import tasks, commands
