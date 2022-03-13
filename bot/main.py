@@ -2,7 +2,7 @@ import os
 import logging
 
 
-from discord.ext import commands
+from discord.ext import tasks, commands
 
 bot = commands.Bot(command_prefix="!")
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -42,8 +42,8 @@ Add your chess.com account as an addition to lichess
 Add your lichess.org account as an addition to chess"""
 
 @bot.command()
-async def ping(ctx):
-    await ctx.send("pong")
+async def ping(ctx, *args):
+    await ctx.send(f"pong from {ctx.author} with args {','.join(args)}")
 
 @bot.command()
 async def chess(ctx):
