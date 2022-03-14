@@ -1,8 +1,11 @@
 import os
 import logging
 import berserk
+import asyncio
 
+from chessdotcom.aio import get_player_profile, get_player_stats, Client
 
+import discord
 from discord.ext import tasks, commands
 
 bot = commands.Bot(command_prefix="!")
@@ -43,17 +46,45 @@ Add your chess.com account as an addition to lichess
 Add your lichess.org account as an addition to chess"""
 
 @bot.command()
+async def embed(ctx):
+    embed=discord.Embed(
+    title="Text Formatting",
+        url="https://realdrewdata.medium.com/",
+        description="Here are some ways to format text",
+        color=discord.Color.blue())
+    embed.set_author(name="RealDrewData", url="https://twitter.com/RealDrewData", icon_url="https://cdn-images-1.medium.com/fit/c/32/32/1*QVYjh50XJuOLQBeH_RZoGw.jpeg")
+    #embed.set_author(name=ctx.author.display_name, url="https://twitter.com/RealDrewData", icon_url=ctx.author.avatar_url)
+    embed.set_thumbnail(url="https://i.imgur.com/axLm3p6.jpeg")
+    embed.add_field(name="*Italics*", value="Surround your text in asterisks (\*)", inline=False)
+    embed.add_field(name="**Bold**", value="Surround your text in double asterisks (\*\*)", inline=False)
+    embed.add_field(name="__Underline__", value="Surround your text in double underscores (\_\_)", inline=False)
+    embed.add_field(name="~~Strikethrough~~", value="Surround your text in double tildes (\~\~)", inline=False)
+    embed.add_field(name="`Code Chunks`", value="Surround your text in backticks (\`)", inline=False)
+    embed.add_field(name="Blockquotes", value="> Start your text with a greater than symbol (\>)", inline=False)
+    embed.add_field(name="Secrets", value="||Surround your text with double pipes (\|\|)||", inline=False)
+    embed.set_footer(text="Learn more here: realdrewdata.medium.com")
+
+    await ctx.send(embed=embed)
+
+@bot.command()
 async def ping(ctx, *args):
     await ctx.send(f"pong from {ctx.author} with args {','.join(args)}")
 
 @bot.command()
-async def chess(ctx):
+async def chess(ctx, *args):
     """ Should connect once daily to chess.com to:
     get rating change
     update belts
-
     """
-    await ctx.send("linking to chess.com profiles isn't yet implemented")
+    if len(args)==0:
+        await ctx.send(f"thanks {ctx.author}, but your message {ctx.message} had 0 arguments and is invalid")
+    else:
+        username = args[0]
+        profile = await get_player_profile(username)
+        stats = await get_player_stats(username)
+        # formatted = "\n\t".join([f"{key}:\t{perfs[key].get('rating',0)}" for key in perfs.keys()])
+        await ctx.send(f"request to link {username} found profile with ratings:\n\t{stats}")
+
 
 @bot.command()
 async def lichess(ctx, *args):
@@ -74,55 +105,42 @@ async def lichess(ctx, *args):
 
 @bot.command()
 async def update(ctx):
+    #TODO: requires database interaction
     await ctx.send("update isn't yet implemented")
 
 @bot.command()
 async def unlink(ctx):
+    #TODO: requires database interaction
     await ctx.send("unlink isn't yet implemented")
 
 @bot.command()
 async def profile(ctx):
-    """old content looked like:
-    Ratings
-1906 (rapid)
-Mapped Website
-lichess.org
-Link
-https://lichess.org/@/giziti
-Blitz
-1878 (682 games)
-Bullet
-1512 (5003 games)
-Rapid
-1906 (73 games)
-Classical
-1822 (73 games)
-Other accounts:
-None
-
-Ratings of chess.com are adjusted to lichess ratings
-
-    """
+    #TODO: requires database interaction
     await ctx.send("profile isn't yet implemented")
 
 @bot.command()
 async def rank(ctx):
+    #TODO: requires database interaction
     await ctx.send("rank isn't yet implemented")
 
 @bot.command()
 async def page(ctx):
+    #TODO: requires database interaction
     await ctx.send("page isn't yet implemented")
 
 @bot.command()
 async def top(ctx):
+    #TODO: requires database interaction
     await ctx.send("top isn't yet implemented")
 
 @bot.command()
 async def tactic(ctx):
+    #TODO: low priority, probably won't implement
     await ctx.send("tactic isn't yet implemented")
 
 @bot.command()
 async def open(ctx):
+    #TODO: low priority, probably won't implement
     await ctx.send("open isn't yet implemented")
 
 @bot.command()
@@ -138,18 +156,22 @@ async def fen(ctx):
 
 @bot.command()
 async def verification(ctx):
+    #TODO: I'm not sure what this should do. Likely won't implement.
     await ctx.send("verification isn't yet implemented")
 
 @bot.command()
 async def progress(ctx):
+    #TODO: requires database interaction
     await ctx.send("progress isn't yet implemented")
 
 @bot.command()
 async def addchess(ctx):
+    #TODO: probably overlaps with chess command, probably won't implement
     await ctx.send("addchess isn't yet implemented")
 
 @bot.command()
 async def addlichess(ctx):
+    #TODO: probably overlaps with lichess command, probably won't implement
     await ctx.send("addlichess isn't yet implemented")
 
 
