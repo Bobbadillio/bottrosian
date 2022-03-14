@@ -88,7 +88,7 @@ async def chess(ctx, *args):
             url=profile.json.get("player",dict()).get("url"),
             color=discord.Color.darker_grey())
         for format in ["chess_rapid","chess_blitz", "chess_bullet"]:
-            embed.add_field(name=f"**{format.split('_')[1]}**",value=stats.json.get("stats",dict()).get("chess_rapid",dict()).get("last", dict()).get("rating","-"),inline=True)
+            embed.add_field(name=f"**{format.split('_')[1]}**",value=stats.json.get("stats",dict()).get(format,dict()).get("last", dict()).get("rating","-"),inline=True)
         await ctx.send(embed=embed)
         # await ctx.send(f"request to link {username} found profile with ratings:\n\t{stats}")
 
