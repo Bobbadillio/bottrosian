@@ -63,8 +63,10 @@ async def lichess(ctx, *args):
         username = args[0]
         try:
             client = berserk.Client()
-            profile = client.users.get_public_data("festivity")
-            await ctx.send(f"request to link {username} found profile with ratings {profile.get('perfs','')}")
+            profile = client.users.get_public_data(username)
+            perfs = profile.get("perfs",dict())
+            formatted = "\n\t".join([f"{key}:\t{perfs[key].get('rating',0)}" for key in perfs.keys()])
+            await ctx.send(f"request to link {username} found profile with ratings:\n\t{formatted}")
         except berserk.exceptions.ResponseError as e:
             await ctx.send(f"request to link {username} failed with error {e}")
         except Exception as e:
