@@ -51,7 +51,7 @@ async def embed(ctx):
     title="Text Formatting",
         url="https://realdrewdata.medium.com/",
         description="Here are some ways to format text",
-        color=discord.Color.blue())
+        color=discord.Color.darker_grey())
     embed.set_author(name="RealDrewData", url="https://twitter.com/RealDrewData", icon_url="https://cdn-images-1.medium.com/fit/c/32/32/1*QVYjh50XJuOLQBeH_RZoGw.jpeg")
     #embed.set_author(name=ctx.author.display_name, url="https://twitter.com/RealDrewData", icon_url=ctx.author.avatar_url)
     embed.set_thumbnail(url="https://i.imgur.com/axLm3p6.jpeg")
@@ -83,7 +83,14 @@ async def chess(ctx, *args):
         profile = await get_player_profile(username)
         stats = await get_player_stats(username)
         # formatted = "\n\t".join([f"{key}:\t{perfs[key].get('rating',0)}" for key in perfs.keys()])
-        await ctx.send(f"request to link {username} found profile with ratings:\n\t{stats}")
+        embed = discord.Embed(
+            title=username,
+            url=profile.json.get("player",dict()).get("url"),
+            color=discord.Color.darker_grey())
+        for format in ["chess_rapid","chess_blitz", "chess_bullet"]:
+            embed.add_field(name=f"**{format.split('_')[1]}**",value=stats.json.get("stats",dict()).get("chess_rapid",dict()).get("last", dict()).get("rating","-"),inline=True)
+        await ctx.send(embed)
+        # await ctx.send(f"request to link {username} found profile with ratings:\n\t{stats}")
 
 
 @bot.command()
