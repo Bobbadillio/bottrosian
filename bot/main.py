@@ -1,7 +1,11 @@
-import os
-import logging
-import berserk
 import asyncio
+import berserk
+import cairosvg
+import chess as chess_py
+import chess.svg
+import io
+import logging
+import os
 
 from chessdotcom.aio import get_player_profile, get_player_stats, Client
 
@@ -149,10 +153,12 @@ async def pgn(ctx):
     await ctx.send("pgn isn't yet implemented")
 
 @bot.command()
-async def fen(ctx):
-    """Good first try! No stateful interaction with a database or chess.com/lichess api is required"""
-    logging.info("logging test")
-    await ctx.send("fen isn't yet implemented")
+async def fen(ctx, *, arg):
+    board = chess_py.Board(arg)
+    svg = chess_py.svg.board(board=board)
+    png = cairosvg.svg2png(bytestring=svg)
+    f = discord.File(io.BytesIO(png), "board.png")
+    await ctx.send(file=f)
 
 @bot.command()
 async def verification(ctx):
