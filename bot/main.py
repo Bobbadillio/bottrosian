@@ -86,7 +86,9 @@ async def chess(ctx, *args):
         embed = discord.Embed(
             title=username,
             url=profile.json.get("player",dict()).get("url"),
+            icon_url="https://images.chesscomfiles.com/uploads/v1/images_users/tiny_mce/SamCopeland/phpmeXx6V.png",
             color=discord.Color.darker_grey())
+        embed.set_thumbnail(profile.json.get("player",dict()).get("avatar",''))
         for format in ["chess_rapid","chess_blitz", "chess_bullet"]:
             embed.add_field(name=f"**{format.split('_')[1]}**",value=stats.json.get("stats",dict()).get(format,dict()).get("last", dict()).get("rating","-"),inline=True)
         await ctx.send(embed=embed)
