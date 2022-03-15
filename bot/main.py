@@ -30,20 +30,12 @@ Displays your current rank in the server (based on your lichess/chess.com rating
 Displays players close to your rank
 .top
 Displays top 10 players of the server. i.e Leaderboard
-.tactic
-To solve tactics from chess.com
-.open [chess opening name here]/[ECO codes]
-To view an opening. Please dont spam with it
 .pgn
 Pops an image out of PGN. Will be handy for coaches.  Example: .pgn d4 c6 Nf3
 verfication (Automatic)
 Challenge a person and paste the invite link in any channel :D (lichess only)
 .progress
-To check your progress
-.addchess
-Add your chess.com account as an addition to lichess
-.addlichess
-Add your lichess.org account as an addition to chess"""
+To check your progress"""
 
 @bot.command()
 async def embed(ctx):
@@ -86,8 +78,8 @@ async def chess(ctx, *args):
         embed = discord.Embed(
             title=username,
             url=profile.json.get("player",dict()).get("url"),
-            icon_url="https://images.chesscomfiles.com/uploads/v1/images_users/tiny_mce/SamCopeland/phpmeXx6V.png",
             color=discord.Color.darker_grey())
+        embed.set_author(name="chess.com",icon_url="https://images.chesscomfiles.com/uploads/v1/images_users/tiny_mce/SamCopeland/phpmeXx6V.png")
         embed.set_thumbnail(url=profile.json.get("player",dict()).get("avatar",''))
         for format in ["chess_rapid","chess_blitz", "chess_bullet"]:
             embed.add_field(name=f"**{format.split('_')[1]}**",value=stats.json.get("stats",dict()).get(format,dict()).get("last", dict()).get("rating","-"),inline=True)
