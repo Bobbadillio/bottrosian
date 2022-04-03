@@ -1,7 +1,11 @@
-import os
-import logging
-import berserk
 import asyncio
+import berserk
+import cairosvg
+import chess as chess_py
+import chess.svg
+import io
+import logging
+import os
 
 from chessdotcom.aio import get_player_profile, get_player_stats, Client
 from chessdotcom.types import ChessDotComError
@@ -31,20 +35,12 @@ Displays your current rank in the server (based on your lichess/chess.com rating
 Displays players close to your rank
 .top
 Displays top 10 players of the server. i.e Leaderboard
-.tactic
-To solve tactics from chess.com
-.open [chess opening name here]/[ECO codes]
-To view an opening. Please dont spam with it
 .pgn
 Pops an image out of PGN. Will be handy for coaches.  Example: .pgn d4 c6 Nf3
 verfication (Automatic)
 Challenge a person and paste the invite link in any channel :D (lichess only)
 .progress
-To check your progress
-.addchess
-Add your chess.com account as an addition to lichess
-.addlichess
-Add your lichess.org account as an addition to chess"""
+To check your progress"""
 
 @bot.command()
 async def embed(ctx):
@@ -52,7 +48,7 @@ async def embed(ctx):
     title="Text Formatting",
         url="https://realdrewdata.medium.com/",
         description="Here are some ways to format text",
-        color=discord.Color.blue())
+        color=discord.Color.darker_grey())
     embed.set_author(name="RealDrewData", url="https://twitter.com/RealDrewData", icon_url="https://cdn-images-1.medium.com/fit/c/32/32/1*QVYjh50XJuOLQBeH_RZoGw.jpeg")
     #embed.set_author(name=ctx.author.display_name, url="https://twitter.com/RealDrewData", icon_url=ctx.author.avatar_url)
     embed.set_thumbnail(url="https://i.imgur.com/axLm3p6.jpeg")
@@ -102,9 +98,8 @@ async def chess(ctx, *args):
             await ctx.send(f"{username} does not have a rapid rating")
             return
         rapid_rating = rapid_stats.last.rating
-        await ctx.send(f"Your rapid rating on chess.com is {rapid_rating}.")
-        belt = chess_com_to_belt(rapid_rating)
-        await ctx.send(f"That makes you a {belt} Belt.")
+        await ctx.send(f"Your rapid rating on chess.com is {rapid_rating}.\nThat makes you a {chess_com_to_belt(rapid_rating)} Belt.")
+
 
 @bot.command()
 async def lichess(ctx, *args):
@@ -169,10 +164,12 @@ async def pgn(ctx):
     await ctx.send("pgn isn't yet implemented")
 
 @bot.command()
-async def fen(ctx):
-    """Good first try! No stateful interaction with a database or chess.com/lichess api is required"""
-    logging.info("logging test")
-    await ctx.send("fen isn't yet implemented")
+async def fen(ctx, *, arg):
+    board = chess_py.Board(arg)
+    svg = chess_py.svg.board(board=board)
+    png = cairosvg.svg2png(bytestring=svg)
+    f = discord.File(io.BytesIO(png), "board.png")
+    await ctx.send(file=f)
 
 @bot.command()
 async def verification(ctx):

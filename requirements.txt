@@ -1,3 +1,5 @@
-discord.py
-chess.com
 berserk-downstream
+cairosvg
+chess
+chess.com
+discord.py
