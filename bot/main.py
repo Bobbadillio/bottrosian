@@ -91,9 +91,18 @@ async def chess(ctx, *args):
             await ctx.send(f"{username} does not have a location set")
             return
         author = str(ctx.author)
-        if location != author:
-            await ctx.send(f"Handshake failed. Your chess.com profile must have its location set to your Discord ID ({author}).")
-            return
+        pg = Postgres(DATABASE_URL)
+        user_lookup = pg.query("SELECT * FROM authenticated_users WHERE discord_id = %(discord_id)s",
+                                       {"discord_id", ctx.author})
+        if user_lookup is None:
+            if location != author:
+                await ctx.send(f"Handshake failed. Your chess.com profile must have its location set to your Discord ID ({author}).")
+                return
+            else:
+                pg.query("""INSERT INTO authenticated_users (discord_id, dojo_belt, mod_awarded_belt)
+                VALUES (%(discord_id)s, NULL, NULL);
+                """, {"discord_id":ctx.author})
+        logging.info(user_lookup)
         stats = await get_player_stats(username)
         try:
             rapid_stats = stats.stats.chess_rapid
