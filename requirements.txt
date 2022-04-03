@@ -1,3 +1,4 @@
 discord.py
 chess.com
 berserk-downstream
+psycopg2

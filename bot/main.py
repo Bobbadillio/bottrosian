@@ -2,6 +2,7 @@ import os
 import logging
 import berserk
 import asyncio
+from PostgresManager import Postgres
 
 from chessdotcom.aio import get_player_profile, get_player_stats, Client
 
@@ -10,6 +11,8 @@ from discord.ext import tasks, commands
 
 bot = commands.Bot(command_prefix="!")
 TOKEN = os.getenv("DISCORD_TOKEN")
+DATABASE_URL = os.environ['DATABASE_URL']
+POSTGRES_OBJECT = Postgres(DATABASE_URL)
 
 @bot.event
 async def on_ready():
@@ -37,26 +40,26 @@ Challenge a person and paste the invite link in any channel :D (lichess only)
 .progress
 To check your progress"""
 
-@bot.command()
-async def embed(ctx):
-    embed=discord.Embed(
-    title="Text Formatting",
-        url="https://realdrewdata.medium.com/",
-        description="Here are some ways to format text",
-        color=discord.Color.darker_grey())
-    embed.set_author(name="RealDrewData", url="https://twitter.com/RealDrewData", icon_url="https://cdn-images-1.medium.com/fit/c/32/32/1*QVYjh50XJuOLQBeH_RZoGw.jpeg")
-    #embed.set_author(name=ctx.author.display_name, url="https://twitter.com/RealDrewData", icon_url=ctx.author.avatar_url)
-    embed.set_thumbnail(url="https://i.imgur.com/axLm3p6.jpeg")
-    embed.add_field(name="*Italics*", value="Surround your text in asterisks (\*)", inline=False)
-    embed.add_field(name="**Bold**", value="Surround your text in double asterisks (\*\*)", inline=False)
-    embed.add_field(name="__Underline__", value="Surround your text in double underscores (\_\_)", inline=False)
-    embed.add_field(name="~~Strikethrough~~", value="Surround your text in double tildes (\~\~)", inline=False)
-    embed.add_field(name="`Code Chunks`", value="Surround your text in backticks (\`)", inline=False)
-    embed.add_field(name="Blockquotes", value="> Start your text with a greater than symbol (\>)", inline=False)
-    embed.add_field(name="Secrets", value="||Surround your text with double pipes (\|\|)||", inline=False)
-    embed.set_footer(text="Learn more here: realdrewdata.medium.com")
-
-    await ctx.send(embed=embed)
+# @bot.command()
+# async def embed(ctx):
+#     embed=discord.Embed(
+#     title="Text Formatting",
+#         url="https://realdrewdata.medium.com/",
+#         description="Here are some ways to format text",
+#         color=discord.Color.darker_grey())
+#     embed.set_author(name="RealDrewData", url="https://twitter.com/RealDrewData", icon_url="https://cdn-images-1.medium.com/fit/c/32/32/1*QVYjh50XJuOLQBeH_RZoGw.jpeg")
+#     #embed.set_author(name=ctx.author.display_name, url="https://twitter.com/RealDrewData", icon_url=ctx.author.avatar_url)
+#     embed.set_thumbnail(url="https://i.imgur.com/axLm3p6.jpeg")
+#     embed.add_field(name="*Italics*", value="Surround your text in asterisks (\*)", inline=False)
+#     embed.add_field(name="**Bold**", value="Surround your text in double asterisks (\*\*)", inline=False)
+#     embed.add_field(name="__Underline__", value="Surround your text in double underscores (\_\_)", inline=False)
+#     embed.add_field(name="~~Strikethrough~~", value="Surround your text in double tildes (\~\~)", inline=False)
+#     embed.add_field(name="`Code Chunks`", value="Surround your text in backticks (\`)", inline=False)
+#     embed.add_field(name="Blockquotes", value="> Start your text with a greater than symbol (\>)", inline=False)
+#     embed.add_field(name="Secrets", value="||Surround your text with double pipes (\|\|)||", inline=False)
+#     embed.set_footer(text="Learn more here: realdrewdata.medium.com")
+#
+#     await ctx.send(embed=embed)
 
 @bot.command()
 async def ping(ctx, *args):
