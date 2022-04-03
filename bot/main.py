@@ -101,7 +101,7 @@ async def chess(ctx, *args):
             else:
                 pg.query("""INSERT INTO authenticated_users (discord_id, dojo_belt, mod_awarded_belt)
                 VALUES (%s, %s, %s);
-                """, (ctx.author, "",""))
+                """, (str(ctx.author), "",""))
         logging.info(user_lookup)
         stats = await get_player_stats(username)
         try:
