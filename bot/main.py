@@ -92,8 +92,8 @@ async def chess(ctx, *args):
             return
         author = str(ctx.author)
         pg = Postgres(DATABASE_URL)
-        user_lookup = pg.query("SELECT * FROM authenticated_users WHERE discord_id = %s",
-                               (str(ctx.author)))
+        user_lookup = pg.query("SELECT * FROM authenticated_users WHERE discord_id = %s;",
+                               (str(ctx.author),))
         if user_lookup is None:
             if location != author:
                 await ctx.send(f"Handshake failed. Your chess.com profile must have its location set to your Discord ID ({author}).")
