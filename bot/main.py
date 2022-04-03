@@ -168,8 +168,8 @@ async def pgn(ctx):
 
 @bot.command()
 async def fen(ctx, *, arg):
-    board = chess_py.Board(arg)
-    svg = chess_py.svg.board(board=board)
+    board = chess.Board(arg)
+    svg = chess.svg.board(board=board)
     png = cairosvg.svg2png(bytestring=svg)
     f = discord.File(io.BytesIO(png), "board.png")
     await ctx.send(file=f)
