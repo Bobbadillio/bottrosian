@@ -2,9 +2,14 @@ import os
 import logging
 import berserk
 import asyncio
+import cairosvg
+import chess
+import chess.svg
+import io
 from PostgresManager import Postgres
 
 from chessdotcom.aio import get_player_profile, get_player_stats, Client
+from chessdotcom.types import ChessDotComError
 
 import discord
 from discord.ext import tasks, commands
@@ -75,19 +80,28 @@ async def chess(ctx, *args):
         await ctx.send(f"thanks {ctx.author}, but your message {ctx.message} had 0 arguments and is invalid")
     else:
         username = args[0]
-        profile = await get_player_profile(username)
+        try:
+            profile = await get_player_profile(username)
+        except ChessDotComError:
+            await ctx.send(f"Unable to read chess.com profile for {username}")
+            return
+        try:
+            location = profile.player.location
+        except AttributeError:
+            await ctx.send(f"{username} does not have a location set")
+            return
+        author = str(ctx.author)
+        if location != author:
+            await ctx.send(f"Handshake failed. Your chess.com profile must have its location set to your Discord ID ({author}).")
+            return
         stats = await get_player_stats(username)
-        # formatted = "\n\t".join([f"{key}:\t{perfs[key].get('rating',0)}" for key in perfs.keys()])
-        embed = discord.Embed(
-            title=username,
-            url=profile.json.get("player",dict()).get("url"),
-            color=discord.Color.darker_grey())
-        embed.set_author(name="chess.com",icon_url="https://images.chesscomfiles.com/uploads/v1/images_users/tiny_mce/SamCopeland/phpmeXx6V.png")
-        embed.set_thumbnail(url=profile.json.get("player",dict()).get("avatar",''))
-        for format in ["chess_rapid","chess_blitz", "chess_bullet"]:
-            embed.add_field(name=f"**{format.split('_')[1]}**",value=stats.json.get("stats",dict()).get(format,dict()).get("last", dict()).get("rating","-"),inline=True)
-        await ctx.send(embed=embed)
-        # await ctx.send(f"request to link {username} found profile with ratings:\n\t{stats}")
+        try:
+            rapid_stats = stats.stats.chess_rapid
+        except AttributeError:
+            await ctx.send(f"{username} does not have a rapid rating")
+            return
+        rapid_rating = rapid_stats.last.rating
+        await ctx.send(f"Your rapid rating on chess.com is {rapid_rating}.\nThat makes you a {chess_com_to_belt(rapid_rating)} Belt.")
 
 
 @bot.command()
@@ -153,10 +167,12 @@ async def pgn(ctx):
     await ctx.send("pgn isn't yet implemented")
 
 @bot.command()
-async def fen(ctx):
-    """Good first try! No stateful interaction with a database or chess.com/lichess api is required"""
-    logging.info("logging test")
-    await ctx.send("fen isn't yet implemented")
+async def fen(ctx, *, arg):
+    board = chess_py.Board(arg)
+    svg = chess_py.svg.board(board=board)
+    png = cairosvg.svg2png(bytestring=svg)
+    f = discord.File(io.BytesIO(png), "board.png")
+    await ctx.send(file=f)
 
 @bot.command()
 async def verification(ctx):
@@ -178,6 +194,23 @@ async def addlichess(ctx):
     #TODO: probably overlaps with lichess command, probably won't implement
     await ctx.send("addlichess isn't yet implemented")
 
+CHESS_COM_BELTS = [
+    (2400, "Black"),
+    (2200, "Red"),
+    (2000, "Brown"),
+    (1800, "Purple"),
+    (1600, "Blue"),
+    (1400, "Green"),
+    (1200, "Orange"),
+    (1000, "Yellow"),
+    (0,    "White")
+]
+
+def chess_com_to_belt(rating):
+    for (threshold, name) in CHESS_COM_BELTS:
+        if rating > threshold:
+            return name
+    return "No"
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
