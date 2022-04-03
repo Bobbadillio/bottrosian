@@ -4,6 +4,7 @@ import berserk
 import asyncio
 
 from chessdotcom.aio import get_player_profile, get_player_stats, Client
+from chessdotcom.types import ChessDotComError
 
 import discord
 from discord.ext import tasks, commands
@@ -80,11 +81,30 @@ async def chess(ctx, *args):
         await ctx.send(f"thanks {ctx.author}, but your message {ctx.message} had 0 arguments and is invalid")
     else:
         username = args[0]
-        profile = await get_player_profile(username)
+        try:
+            profile = await get_player_profile(username)
+        except ChessDotComError:
+            await ctx.send(f"Unable to read chess.com profile for {username}")
+            return
+        try:
+            location = profile.player.location
+        except AttributeError:
+            await ctx.send(f"{username} does not have a location set")
+            return
+        author = str(ctx.author)
+        if location != author:
+            await ctx.send(f"Handshake failed. Your chess.com profile must have its location set to your Discord ID ({author}).")
+            return
         stats = await get_player_stats(username)
-        # formatted = "\n\t".join([f"{key}:\t{perfs[key].get('rating',0)}" for key in perfs.keys()])
-        await ctx.send(f"request to link {username} found profile with ratings:\n\t{stats}")
-
+        try:
+            rapid_stats = stats.stats.chess_rapid
+        except AttributeError:
+            await ctx.send(f"{username} does not have a rapid rating")
+            return
+        rapid_rating = rapid_stats.last.rating
+        await ctx.send(f"Your rapid rating on chess.com is {rapid_rating}.")
+        belt = chess_com_to_belt(rapid_rating)
+        await ctx.send(f"That makes you a {belt} Belt.")
 
 @bot.command()
 async def lichess(ctx, *args):
@@ -174,6 +194,23 @@ async def addlichess(ctx):
     #TODO: probably overlaps with lichess command, probably won't implement
     await ctx.send("addlichess isn't yet implemented")
 
+CHESS_COM_BELTS = [
+    (2400, "Black"),
+    (2200, "Red"),
+    (2000, "Brown"),
+    (1800, "Purple"),
+    (1600, "Blue"),
+    (1400, "Green"),
+    (1200, "Orange"),
+    (1000, "Yellow"),
+    (0,    "White")
+]
+
+def chess_com_to_belt(rating):
+    for (threshold, name) in CHESS_COM_BELTS:
+        if rating > threshold:
+            return name
+    return "No"
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
