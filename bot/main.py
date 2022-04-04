@@ -80,28 +80,40 @@ async def chess(ctx, *args):
         await ctx.send(f"thanks {ctx.author}, but your message {ctx.message} had 0 arguments and is invalid")
     else:
         username = args[0]
+        author = str(ctx.author)
+        pg = Postgres(DATABASE_URL)
+
+        # Adding authenticated users if doesn't exist
+        user_lookup = pg.query("SELECT * FROM authenticated_users WHERE discord_id = '%s';",
+                               (author,))
+        logging.warning("query was ")
+        if user_lookup is None:
+            logging.info(f"inserting {ctx.author} into database")
+            pg.query("""INSERT INTO authenticated_users (discord_id, dojo_belt, mod_awarded_belt)
+            VALUES (%s, %s, %s);
+            """, (author, "white","white"))
+            await ctx.send(f"inserted {author} into database")
+        else:
+            await ctx.send(f"{ctx.author} was already in the database")
+
+        # getting chess.com info
         try:
             profile = await get_player_profile(username)
         except ChessDotComError:
             await ctx.send(f"Unable to read chess.com profile for {username}")
             return
+
         try:
             location = profile.player.location
         except AttributeError:
             await ctx.send(f"{username} does not have a location set")
             return
-        author = str(ctx.author)
-        pg = Postgres(DATABASE_URL)
-        user_lookup = pg.query("SELECT * FROM authenticated_users WHERE discord_id = %s;",
-                               (str(ctx.author),))
         if user_lookup is None:
             if location != author:
                 await ctx.send(f"Handshake failed. Your chess.com profile must have its location set to your Discord ID ({author}).")
                 return
             else:
-                pg.query("""INSERT INTO authenticated_users (discord_id, dojo_belt, mod_awarded_belt)
-                VALUES (%s, %s, %s);
-                """, (str(ctx.author), "",""))
+                await ctx.send(f"User {ctx.author} already in database")
         logging.info(user_lookup)
         stats = await get_player_stats(username)
         try:
