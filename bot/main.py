@@ -81,20 +81,8 @@ async def chess(ctx, *args):
     else:
         username = args[0]
         author = str(ctx.author)
-        pg = Postgres(DATABASE_URL)
 
-        # Adding authenticated users if doesn't exist
-        user_lookup = pg.query("SELECT * FROM authenticated_users WHERE discord_id = %s",
-                               (author,))
-        logging.warning("query was ")
-        if user_lookup is None:
-            logging.info(f"inserting {ctx.author} into database")
-            pg.query("""INSERT INTO authenticated_users (discord_id, dojo_belt, mod_awarded_belt)
-            VALUES (%s, %s, %s);
-            """, (author, "white","white"))
-            await ctx.send(f"inserted {author} into database")
-        else:
-            await ctx.send(f"{ctx.author} was already in the database")
+        EnsureAuthorExists(author)
 
         # getting chess.com info
         try:
@@ -108,21 +96,41 @@ async def chess(ctx, *args):
         except AttributeError:
             await ctx.send(f"{username} does not have a location set")
             return
-        if user_lookup is None:
+
+        pg = Postgres(DATABASE_URL)
+        retrieved_chess_profile = pg.query("SELECT * from chesscom_profiles WHERE discord_id = %s", (author,))
+        if retrieved_chess_profile is None:
             if location != author:
                 await ctx.send(f"Handshake failed. Your chess.com profile must have its location set to your Discord ID ({author}).")
                 return
+            else:
+                stats = await get_player_stats(username)
+                try:
+                    rapid_stats = stats.stats.chess_rapid
+                except AttributeError:
+                    await ctx.send(f"{username} does not have a rapid rating. Have you played enough games for a stable rating?")
+                    return
+                rapid_rating = rapid_stats.last.rating
+                await ctx.send(
+                    f"Your rapid rating on chess.com is {rapid_rating}.\nThat makes you a {chess_com_to_belt(rapid_rating)} Belt.")
+                pg.query("""INSERT INTO chesscom_profiles (username, discord_id, last_elo, previous_elo)
+                    VALUES (%s, %s, %s, %s);
+                    """, (username, author, rapid_rating, rapid_rating))
         else:
-            await ctx.send(f"Skipping handshake. User {ctx.author} already in database")
-        logging.info(user_lookup)
-        stats = await get_player_stats(username)
-        try:
-            rapid_stats = stats.stats.chess_rapid
-        except AttributeError:
-            await ctx.send(f"{username} does not have a rapid rating")
-            return
-        rapid_rating = rapid_stats.last.rating
-        await ctx.send(f"Your rapid rating on chess.com is {rapid_rating}.\nThat makes you a {chess_com_to_belt(rapid_rating)} Belt.")
+            await ctx.send(f"Skipping handshake. User {ctx.author} already in database. Try !update")
+
+
+
+
+def EnsureAuthorExists(author):
+    """Adds authenticated users if doesn't exist"""
+    pg = Postgres(DATABASE_URL)
+    user_lookup = pg.query("SELECT * FROM authenticated_users WHERE discord_id = %s",
+                           (author,))
+    if user_lookup is None:
+        pg.query("""INSERT INTO authenticated_users (discord_id, dojo_belt, mod_awarded_belt)
+            VALUES (%s, %s, %s);
+            """, (author, "white", "white"))
 
 
 @bot.command()
