@@ -91,15 +91,16 @@ async def chess(ctx, *args):
             await ctx.send(f"Unable to read chess.com profile for {username}")
             return
 
-        try:
-            location = profile.player.location
-        except AttributeError:
-            await ctx.send(f"{username} does not have a location set")
-            return
 
         pg = Postgres(DATABASE_URL)
         retrieved_chess_profile = pg.query("SELECT * from chesscom_profiles WHERE discord_id = %s", (author,))
         if retrieved_chess_profile is None:
+            try:
+                location = profile.player.location
+            except AttributeError:
+                await ctx.send(f"{username} does not have a location set")
+                return
+
             if location != author:
                 await ctx.send(f"Handshake failed. Your chess.com profile must have its location set to your Discord ID ({author}).")
                 return
@@ -156,9 +157,20 @@ async def update(ctx):
     await ctx.send("update isn't yet implemented")
 
 @bot.command()
-async def unlink(ctx):
-    #TODO: requires database interaction
-    await ctx.send("unlink isn't yet implemented")
+async def unlink(ctx, args):
+    if len(args)== 0:
+        await ctx.send(f"""thanks {ctx.author}, but your message {ctx.message} had 0 arguments and is invalid. Please retry 
+        with either !unlink chess or !unlink lichess""")
+    else:
+        pg = Postgres(DATABASE_URL)
+        author = str(ctx.author)
+        if args[1] == "lichess":
+                pg.query("""DELETE FROM lichess_profiles WHERE discord_id = %s;""", (author,))
+        elif args[1] == "chess":
+                pg.query("""DELETE FROM chesscom_profiles WHERE discord_id = %s;""", (author,))
+        else:
+            await ctx.send(f"""thanks {ctx.author}, but your message {ctx.message} tried to unlink you from '{args[1]}'
+            which is invalid. please try !unlink chess or !unlink lichess""")
 
 @bot.command()
 async def profile(ctx):
