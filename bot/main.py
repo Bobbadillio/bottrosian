@@ -157,7 +157,7 @@ async def update(ctx):
     await ctx.send("update isn't yet implemented")
 
 @bot.command()
-async def unlink(ctx, args):
+async def unlink(ctx, *args):
     if len(args)== 0:
         await ctx.send(f"""thanks {ctx.author}, but your message {ctx.message} had 0 arguments and is invalid. Please retry 
         with either !unlink chess or !unlink lichess""")
