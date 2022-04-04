@@ -112,8 +112,8 @@ async def chess(ctx, *args):
             if location != author:
                 await ctx.send(f"Handshake failed. Your chess.com profile must have its location set to your Discord ID ({author}).")
                 return
-            else:
-                await ctx.send(f"User {ctx.author} already in database")
+        else:
+            await ctx.send(f"Skipping handshake. User {ctx.author} already in database")
         logging.info(user_lookup)
         stats = await get_player_stats(username)
         try:
