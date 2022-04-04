@@ -30,7 +30,7 @@ class Postgres(object):
     def query(self, query, params=None):
         try:
             with self.connection, self.connection.cursor() as cursor:
-                cursor.execute(query,params)
+                result = cursor.execute(query,params)
         except Exception as error:
             logging.log(logging.WARNING, 'error execting query "{}", error: {}'.format(query, error))
             return None
