@@ -98,7 +98,7 @@ async def chess(ctx, *args):
             try:
                 location = profile.player.location
             except AttributeError:
-                await ctx.send(f"{username} does not have a location set")
+                await ctx.send(f"{username} does not have a location set. Your chess.com profile must have its location set to your Discord ID ({author})")
                 return
 
             if location != author:
@@ -159,15 +159,17 @@ async def update(ctx):
 @bot.command()
 async def unlink(ctx, *args):
     if len(args)== 0:
-        await ctx.send(f"""thanks {ctx.author}, but your message {ctx.message} had 0 arguments and is invalid. Please retry 
+        await ctx.send(f"""thanks {ctx.author}, but your message had 0 arguments and is invalid. Please retry 
         with either !unlink chess or !unlink lichess""")
     else:
         pg = Postgres(DATABASE_URL)
         author = str(ctx.author)
-        if args[1] == "lichess":
-                pg.query("""DELETE FROM lichess_profiles WHERE discord_id = %s;""", (author,))
-        elif args[1] == "chess":
-                pg.query("""DELETE FROM chesscom_profiles WHERE discord_id = %s;""", (author,))
+        if args[0] == "lichess":
+                deletion_result = pg.query("""DELETE FROM lichess_profiles WHERE discord_id = %s""", (author,))
+                await ctx.send(f"""User {ctx.author} removed? {deletion_result}""")
+        elif args[0] == "chess":
+                deletion_result = pg.query("""DELETE FROM chesscom_profiles WHERE discord_id = %s""", (author,))
+                await ctx.send(f"""User {ctx.author} removed? {deletion_result}""")
         else:
             await ctx.send(f"""thanks {ctx.author}, but your message {ctx.message} tried to unlink you from '{args[1]}'
             which is invalid. please try !unlink chess or !unlink lichess""")
