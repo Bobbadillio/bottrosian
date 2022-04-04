@@ -28,11 +28,16 @@ class Postgres(object):
         self.cursor = self._instance.cursor
 
     def query(self, query, params=None):
+        result = None
         try:
             with self.connection, self.connection.cursor() as cursor:
-                result = cursor.execute(query,params)
+                cursor.execute(query,params)
+                try:
+                    result = cursor.fetchone()
+                except psycopg2.ProgrammingError:
+                    return None
         except Exception as error:
-            logging.log(logging.WARNING, 'error execting query "{}", error: {}'.format(query, error))
+            logging.log(logging.WARNING, 'error executing query "{}", error: {}'.format(query, error))
             return None
         else:
             return result
