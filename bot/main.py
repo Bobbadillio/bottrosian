@@ -84,7 +84,7 @@ async def chess(ctx, *args):
         pg = Postgres(DATABASE_URL)
 
         # Adding authenticated users if doesn't exist
-        user_lookup = pg.query("SELECT * FROM authenticated_users WHERE discord_id = '%s';",
+        user_lookup = pg.query("SELECT * FROM authenticated_users WHERE discord_id = %s;",
                                (author,))
         logging.warning("query was ")
         if user_lookup is None:
