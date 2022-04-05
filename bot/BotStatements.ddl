@@ -7,14 +7,14 @@ CREATE TABLE authenticated_users
 
 CREATE TABLE chesscom_profiles
 (
-    username VARCHAR(255) PRIMARY KEY,
+    chesscom_username VARCHAR(255) PRIMARY KEY,
     discord_id VARCHAR(63) REFERENCES authenticated_users (discord_id),
     last_chesscom_elo SMALLINT,
     previous_chesscom_elo SMALLINT
 );
 
 CREATE TABLE lichess_profiles (
-    username VARCHAR(255) PRIMARY KEY,
+    lichess_username VARCHAR(255) PRIMARY KEY,
     discord_id VARCHAR(63) NOT NULL REFERENCES authenticated_users (discord_id),
     last_lichess_elo SMALLINT,
     previous_lichess_elo SMALLINT
