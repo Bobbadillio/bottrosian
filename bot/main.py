@@ -113,7 +113,7 @@ async def chess(ctx, *args):
                     return
                 rapid_rating = rapid_stats.last.rating
                 mapped_belt = chess_com_to_belt(rapid_rating)
-                pg.query("""INSERT INTO chesscom_profiles (username, discord_id, last_elo, previous_elo)
+                pg.query("""INSERT INTO chesscom_profiles (username, discord_id, last_chesscom_elo, previous_chesscom_elo)
                     VALUES (%s, %s, %s, %s);
                     """, (username, author, rapid_rating, rapid_rating))
                 pg.query("""UPDATE authenticated_users SET dojo_belt = GREATEST(dojo_belt, %s)""",(mapped_belt,))

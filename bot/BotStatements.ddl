@@ -9,15 +9,15 @@ CREATE TABLE chesscom_profiles
 (
     username VARCHAR(255) PRIMARY KEY,
     discord_id VARCHAR(63) REFERENCES authenticated_users (discord_id),
-    last_elo SMALLINT,
-    previous_elo SMALLINT
+    last_chesscom_elo SMALLINT,
+    previous_chesscom_elo SMALLINT
 );
 
 CREATE TABLE lichess_profiles (
     username VARCHAR(255) PRIMARY KEY,
     discord_id VARCHAR(63) NOT NULL REFERENCES authenticated_users (discord_id),
-    last_elo SMALLINT,
-    previous_elo SMALLINT
+    last_lichess_elo SMALLINT,
+    previous_lichess_elo SMALLINT
 );
 
 CREATE TYPE BELT_T AS ENUM('White', 'Yellow', 'Orange', 'Green', 'Blue', 'Purple', 'Brown', 'Red', 'Black');
