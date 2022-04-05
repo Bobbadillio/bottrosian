@@ -131,7 +131,7 @@ def EnsureAuthorExists(author):
     if user_lookup is None:
         pg.query("""INSERT INTO authenticated_users (discord_id, dojo_belt, mod_awarded_belt)
             VALUES (%s, %s, %s);
-            """, (author, "white", "white"))
+            """, (author, None, None))
 
 
 @bot.command()

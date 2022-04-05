@@ -1,8 +1,8 @@
 CREATE TABLE authenticated_users
 (
     discord_id VARCHAR(63) PRIMARY KEY,
-    dojo_belt        VARCHAR(15),
-    mod_awarded_belt VARCHAR(15)
+    dojo_belt        BELT_T,
+    mod_awarded_belt BELT_T
 );
 
 CREATE TABLE chesscom_profiles
@@ -12,7 +12,6 @@ CREATE TABLE chesscom_profiles
     last_elo SMALLINT,
     previous_elo SMALLINT
 );
-
 
 CREATE TABLE lichess_profiles (
     username VARCHAR(255) PRIMARY KEY,
@@ -32,3 +31,5 @@ select * from information_schema.tables;
    information_schema.columns
  WHERE
   table_name = 'authenticated_users';
+
+CREATE TYPE BELT_T AS ENUM('White', 'Yellow', 'Orange', 'Green', 'Blue', 'Purple', 'Brown', 'Red', 'Black');
