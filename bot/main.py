@@ -112,11 +112,13 @@ async def chess(ctx, *args):
                     await ctx.send(f"{username} does not have a rapid rating. Have you played enough games for a stable rating?")
                     return
                 rapid_rating = rapid_stats.last.rating
-                await ctx.send(
-                    f"Your rapid rating on chess.com is {rapid_rating}.\nThat makes you a {chess_com_to_belt(rapid_rating)} Belt.")
+                mapped_belt = chess_com_to_belt(rapid_rating)
                 pg.query("""INSERT INTO chesscom_profiles (username, discord_id, last_elo, previous_elo)
                     VALUES (%s, %s, %s, %s);
                     """, (username, author, rapid_rating, rapid_rating))
+                pg.query("""UPDATE authenticated_users SET dojo_belt = GREATEST(dojo_belt, %s)""",(mapped_belt,))
+                await ctx.send(
+                    f"Your rapid rating on chess.com is {rapid_rating}.\nThat makes you a {mapped_belt} Belt.")
         else:
             await ctx.send(f"Skipping handshake. User {ctx.author} already in database. Try !update")
 

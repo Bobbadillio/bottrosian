@@ -20,6 +20,8 @@ CREATE TABLE lichess_profiles (
     previous_elo SMALLINT
 );
 
+CREATE TYPE BELT_T AS ENUM('White', 'Yellow', 'Orange', 'Green', 'Blue', 'Purple', 'Brown', 'Red', 'Black');
+
 select * from information_schema.tables;
 
 
@@ -31,5 +33,3 @@ select * from information_schema.tables;
    information_schema.columns
  WHERE
   table_name = 'authenticated_users';
-
-CREATE TYPE BELT_T AS ENUM('White', 'Yellow', 'Orange', 'Green', 'Blue', 'Purple', 'Brown', 'Red', 'Black');
