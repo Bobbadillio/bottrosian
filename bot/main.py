@@ -2,6 +2,7 @@ import os
 import logging
 import berserk
 import asyncio
+import tabulate
 import cairosvg
 import chess as chess_py
 import chess.svg as chesssvg
@@ -198,13 +199,14 @@ async def unlink(ctx, *args):
 
 @bot.command()
 async def profile(ctx, *args):
+    profile_headers= ["discord id", "belt", "chess.com username", "chess.com rapid", "lichess username", "lichess classical"]
     pg = Postgres(DATABASE_URL)
     if len(args)==0:
         profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (str(ctx.author),))
     else:
         pg = Postgres(DATABASE_URL)
         profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (args[0],))
-    await ctx.send(f"{profile_result} ")
+    await ctx.send(f"{tabulate.tabulate(profile_result, headers=profile_headers)} ")
 
 # @bot.command()
 # async def rank(ctx):
@@ -219,12 +221,14 @@ async def profile(ctx, *args):
 @bot.command()
 async def top(ctx):
     pg = Postgres(DATABASE_URL)
+    chesscom_top_headers = ["chess.com username", "chess.com rapid"]
     chesscom_results = pg.query("""select chesscom_username as username, last_chesscom_elo as elo from chesscom_profiles order by elo desc limit 10;""")
-    await ctx.send(f"{chesscom_results} ")
+    await ctx.send(f"{tabulate.tabulate(chesscom_results, headers=chesscom_top_headers)} ")
 
+    lichess_top_headers = ["lichess username", "lichess classical"]
     lichess_results = pg.query(
         """select lichess_username as username, last_lichess_elo as elo from lichess_profiles order by elo desc limit 10;""")
-    await ctx.send(f"{lichess_results} ")
+    await ctx.send(f"{tabulate.tabulate(lichess_results,headers=lichess_top_headers)}")
 
 # @bot.command()
 # async def tactic(ctx):

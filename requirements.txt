@@ -4,3 +4,4 @@ berserk-downstream
 cairosvg
 chess
 psycopg2
+tabulate
