@@ -226,7 +226,7 @@ async def profile(ctx, *args):
     for header, value in zip(profile_headers, profile_result):
         message_to_send.append(f"{header}: {value}")
     final_message = '\n'.join(message_to_send)
-    await ctx.send(f"final_message")
+    await ctx.send(f"{final_message} ")
 
 # @bot.command()
 # async def rank(ctx):
