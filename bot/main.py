@@ -67,10 +67,6 @@ To check your progress"""
 #     await ctx.send(embed=embed)
 
 @bot.command()
-async def ping(ctx, *args):
-    await ctx.send(f"pong from {ctx.author} with args {','.join(args)}")
-
-@bot.command()
 async def chess(ctx, *args):
     """ Should connect once daily to chess.com to:
     get rating change
@@ -200,39 +196,51 @@ async def unlink(ctx, *args):
             which is invalid. please try !unlink chess or !unlink lichess""")
 
 @bot.command()
-async def profile(ctx):
-    #TODO: requires database interaction
-    await ctx.send("profile isn't yet implemented")
+async def profile(ctx, *args):
+    if len(args==0):
+        await ctx.send(f"""thanks {ctx.author}, but your message had 0 arguments and is invalid. Please retry 
+        with a specified username""")
+    else:
+        profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (author,))
+        await ctx.send(profile_result)
 
-@bot.command()
-async def rank(ctx):
-    #TODO: requires database interaction
-    await ctx.send("rank isn't yet implemented")
+# @bot.command()
+# async def rank(ctx):
+#     #TODO: requires database interaction
+#     await ctx.send("rank isn't yet implemented")
 
-@bot.command()
-async def page(ctx):
-    #TODO: requires database interaction
-    await ctx.send("page isn't yet implemented")
+# @bot.command()
+# async def page(ctx):
+#     #TODO: requires database interaction
+#     await ctx.send("page isn't yet implemented")
 
 @bot.command()
 async def top(ctx):
-    #TODO: requires database interaction
-    await ctx.send("top isn't yet implemented")
+    pg = Postgres(DATABASE_URL)
+    chesscom_results = pg.query("""select chesscom_username as username, last_chesscom_elo as elo from chesscom_profiles order by elo desc limit 10;""")
+    await ctx.send(chesscom_results)
+
+    lichess_results = pg.query(
+        """select lichess_username as username, last_lichess_elo as elo from lichess_profiles order by elo desc limit 10;""")
+    await ctx.send(lichess_results)
+
+# @bot.command()
+# async def tactic(ctx):
+#     #TODO: low priority, probably won't implement
+#     await ctx.send("tactic isn't yet implemented")
+
+# @bot.command()
+# async def open(ctx):
+#     #TODO: low priority, probably won't implement
+#     await ctx.send("open isn't yet implemented")
 
 @bot.command()
-async def tactic(ctx):
-    #TODO: low priority, probably won't implement
-    await ctx.send("tactic isn't yet implemented")
-
-@bot.command()
-async def open(ctx):
-    #TODO: low priority, probably won't implement
-    await ctx.send("open isn't yet implemented")
-
-@bot.command()
-async def pgn(ctx):
-
-    await ctx.send("pgn isn't yet implemented")
+async def pgn(ctx, arg):
+    final_position = chess.pgn.read_game(io.StringIO(arg)).board
+    svg = chess.svg.board(board=final_position)
+    png = cairosvg.svg2png(bytestring=svg)
+    f = discord.File(io.BytesIO(png), "board.png")
+    await ctx.send(file=f)
 
 @bot.command()
 async def fen(ctx, *, arg):
@@ -242,25 +250,25 @@ async def fen(ctx, *, arg):
     f = discord.File(io.BytesIO(png), "board.png")
     await ctx.send(file=f)
 
-@bot.command()
-async def verification(ctx):
-    #TODO: I'm not sure what this should do. Likely won't implement.
-    await ctx.send("verification isn't yet implemented")
+# @bot.command()
+# async def verification(ctx):
+#     #TODO: I'm not sure what this should do. Likely won't implement.
+#     await ctx.send("verification isn't yet implemented")
 
 @bot.command()
 async def progress(ctx):
     #TODO: requires database interaction
     await ctx.send("progress isn't yet implemented")
 
-@bot.command()
-async def addchess(ctx):
-    #TODO: probably overlaps with chess command, probably won't implement
-    await ctx.send("addchess isn't yet implemented")
+# @bot.command()
+# async def addchess(ctx):
+#     #TODO: probably overlaps with chess command, probably won't implement
+#     await ctx.send("addchess isn't yet implemented")
 
-@bot.command()
-async def addlichess(ctx):
-    #TODO: probably overlaps with lichess command, probably won't implement
-    await ctx.send("addlichess isn't yet implemented")
+# @bot.command()
+# async def addlichess(ctx):
+#     #TODO: probably overlaps with lichess command, probably won't implement
+#     await ctx.send("addlichess isn't yet implemented")
 
 CHESS_COM_BELTS = [
     (2400, "Black"),
