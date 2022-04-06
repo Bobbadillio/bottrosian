@@ -238,7 +238,7 @@ async def top(ctx):
 
 @bot.command()
 async def pgn(ctx, arg):
-    final_position = chesspgn.read_game(io.StringIO(arg)).board
+    final_position = chesspgn.read_game(io.StringIO(arg)).end().board()
     svg = chesssvg.board(board=final_position)
     png = cairosvg.svg2png(bytestring=svg)
     f = discord.File(io.BytesIO(png), "board.png")
