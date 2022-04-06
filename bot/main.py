@@ -223,7 +223,7 @@ async def profile(ctx, *args):
         profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (args[0],))
 
     message_to_send = []
-    for header, value in zip(profile_headers, profile_result):
+    for header, value in zip(profile_headers, profile_result[0]):
         message_to_send.append(f"{header}: {value}")
     final_message = '\n'.join(message_to_send)
     await ctx.send(f"{final_message} ")
