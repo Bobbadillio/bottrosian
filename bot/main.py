@@ -120,7 +120,7 @@ async def chess(ctx, *args):
                 await ctx.send(
                     f"Your rapid rating on chess.com is {rapid_rating}.\nThat makes you a {mapped_belt} Belt.")
         else:
-            await ctx.send(f"Skipping handshake. User {ctx.author} already in database. Try !update")
+            await ctx.send(f"Skipping handshake. User {ctx.author} already in database. Try !update or !profile")
 
 
 
@@ -142,12 +142,35 @@ async def lichess(ctx, *args):
         await ctx.send(f"thanks {ctx.author}, but your message {ctx.message} had 0 arguments and is invalid")
     else:
         username = args[0]
+        author = str(ctx.author)
+
+        EnsureAuthorExists(author)
         try:
-            client = berserk.Client()
-            profile = client.users.get_public_data(username)
-            perfs = profile.get("perfs",dict())
-            formatted = "\n\t".join([f"{key}:\t{perfs[key].get('rating',0)}" for key in perfs.keys()])
-            await ctx.send(f"request to link {username} found profile with ratings:\n\t{formatted}")
+            pg = Postgres(DATABASE_URL)
+            retrieved_lichess_profile = pg.query("SELECT * from lichess_profiles WHERE discord_id = %s", (author,))
+            if retrieved_lichess_profile is not None:
+                await ctx.send(f"Skipping handshake. User {ctx.author} already in database. Try !update or !profile")
+            else:
+                client = berserk.Client()
+                profile = client.users.get_public_data(username)
+                bio = profile.get("profile", dict()).get("bio", "")
+                if author not in bio:
+                    await ctx.send(f"Handshake failed. Your lichess profile must have your Discord ID ({author}) in your bio")
+                    return
+                else:
+                    classical =  profile.get("perfs",dict()).get("classical",dict())
+                    if classical.get('prov',False) and classical.get("rating") is not None:
+                        await ctx.send(f"{username} does not have a classical rating. Have you played enough games on lichess for a stable rating?")
+                    else:
+                        classical_rating = classical.get("rating")
+                        mapped_belt = lichess_to_belt(classical_rating)
+                        pg.query("""INSERT INTO lichess_profiles (chesscom_username, discord_id, last_chesscom_elo, previous_chesscom_elo)
+                            VALUES (%s, %s, %s, %s);
+                            """, (username, author, classical_rating, classical_rating))
+                        pg.query("""UPDATE authenticated_users SET dojo_belt = GREATEST(dojo_belt, %s)""",(mapped_belt,))
+                        await ctx.send(
+                            f"Your classical rating on lichess is {classical_rating}.\nThat makes you a {mapped_belt} Belt.")
+
         except berserk.exceptions.ResponseError as e:
             await ctx.send(f"request to link {username} failed with error {e}")
         except Exception as e:
@@ -173,7 +196,7 @@ async def unlink(ctx, *args):
                 deletion_result = pg.query("""DELETE FROM chesscom_profiles WHERE discord_id = %s""", (author,))
                 await ctx.send(f"""User {ctx.author} removed? {deletion_result}""")
         else:
-            await ctx.send(f"""thanks {ctx.author}, but your message {ctx.message} tried to unlink you from '{args[1]}'
+            await ctx.send(f"""thanks {ctx.author}, but your message {ctx.message} tried to unlink you from '{args[0]}'
             which is invalid. please try !unlink chess or !unlink lichess""")
 
 @bot.command()
@@ -251,8 +274,26 @@ CHESS_COM_BELTS = [
     (0,    "White")
 ]
 
+LICHESS_BELTS = [
+    (2400, "Black"),
+    (2200, "Red"),
+    (2100, "Brown"),
+    (2000, "Purple"),
+    (1800, "Blue"),
+    (1600, "Green"),
+    (1400, "Orange"),
+    (1200, "Yellow"),
+    (0,    "White")
+]
+
 def chess_com_to_belt(rating):
     for (threshold, name) in CHESS_COM_BELTS:
+        if rating > threshold:
+            return name
+    return "No"
+
+def chess_com_to_belt(rating):
+    for (threshold, name) in LICHESS_BELTS:
         if rating > threshold:
             return name
     return "No"
