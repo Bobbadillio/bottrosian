@@ -91,7 +91,12 @@ async def chess(ctx, *args):
 
 
         pg = Postgres(DATABASE_URL)
-        retrieved_chess_profile = pg.query("SELECT * from chesscom_profiles WHERE discord_id = %s", (author,))
+        retrieved_chess_profiles = pg.query("SELECT * from chesscom_profiles WHERE discord_id = %s", (author,))
+        if len(retrieved_chess_profiles)==0:
+            retrieved_chess_profile = None
+        else:
+            retrieved_chess_profile = retrieved_chess_profiles[0]
+
         if retrieved_chess_profile is None:
             try:
                 location = profile.player.location
@@ -126,8 +131,13 @@ async def chess(ctx, *args):
 def EnsureAuthorExists(author):
     """Adds authenticated users if doesn't exist"""
     pg = Postgres(DATABASE_URL)
-    user_lookup = pg.query("SELECT * FROM authenticated_users WHERE discord_id = %s",
+    user_lookups = pg.query("SELECT * FROM authenticated_users WHERE discord_id = %s",
                            (author,))
+    if len(user_lookups) == 0:
+        user_lookup = None
+    else:
+        user_lookup = user_lookups[0]
+
     if user_lookup is None:
         pg.query("""INSERT INTO authenticated_users (discord_id, dojo_belt, mod_awarded_belt)
             VALUES (%s, %s, %s);
@@ -145,7 +155,12 @@ async def lichess(ctx, *args):
         EnsureAuthorExists(author)
         try:
             pg = Postgres(DATABASE_URL)
-            retrieved_lichess_profile = pg.query("SELECT * from lichess_profiles WHERE discord_id = %s", (author,))
+            retrieved_lichess_profiles = pg.query("SELECT * from lichess_profiles WHERE discord_id = %s", (author,))
+            if len(retrieved_lichess_profiles) == 0:
+                retrieved_lichess_profile = None
+            else:
+                retrieved_lichess_profile = retrieved_lichess_profiles[0]
+
             if retrieved_lichess_profile is not None:
                 await ctx.send(f"Skipping handshake. User {ctx.author} already in database. Try !update or !profile")
             else:
@@ -188,10 +203,10 @@ async def unlink(ctx, *args):
         pg = Postgres(DATABASE_URL)
         author = str(ctx.author)
         if args[0] == "lichess":
-                deletion_result = pg.query("""DELETE FROM lichess_profiles WHERE discord_id = %s""", (author,))
+                deletion_result = pg.query("""DELETE FROM lichess_profiles WHERE discord_id = %s RETURNING *""", (author,))
                 await ctx.send(f"""User {ctx.author} removed? {deletion_result}""")
         elif args[0] == "chess":
-                deletion_result = pg.query("""DELETE FROM chesscom_profiles WHERE discord_id = %s""", (author,))
+                deletion_result = pg.query("""DELETE FROM chesscom_profiles WHERE discord_id = %s RETURNING *""", (author,))
                 await ctx.send(f"""User {ctx.author} removed? {deletion_result}""")
         else:
             await ctx.send(f"""thanks {ctx.author}, but your message {ctx.message} tried to unlink you from '{args[0]}'
