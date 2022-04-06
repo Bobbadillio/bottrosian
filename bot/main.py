@@ -4,8 +4,8 @@ import berserk
 import asyncio
 import cairosvg
 import chess as chess_py
-import chess.svg
-import chess.pgn
+import chess.svg as chesssvg
+import chess.pgn as chesspgn
 import io
 from PostgresManager import Postgres
 
@@ -200,11 +200,11 @@ async def unlink(ctx, *args):
 async def profile(ctx, *args):
     pg = Postgres(DATABASE_URL)
     if len(args)==0:
-        profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (ctx.author,))
+        profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (str(ctx.author),))
     else:
         pg = Postgres(DATABASE_URL)
-        profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (args[1],))
-    await ctx.send(profile_result)
+        profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (args[0],))
+    await ctx.send(f"{profile_result} ")
 
 # @bot.command()
 # async def rank(ctx):
@@ -238,8 +238,8 @@ async def top(ctx):
 
 @bot.command()
 async def pgn(ctx, arg):
-    final_position = chess.pgn.read_game(io.StringIO(arg)).board
-    svg = chess.svg.board(board=final_position)
+    final_position = chesspgn.read_game(io.StringIO(arg)).board
+    svg = chesssvg.board(board=final_position)
     png = cairosvg.svg2png(bytestring=svg)
     f = discord.File(io.BytesIO(png), "board.png")
     await ctx.send(file=f)
