@@ -3,7 +3,7 @@ import logging
 import berserk
 import asyncio
 import cairosvg
-import chess
+import chess as chess_py
 import chess.svg
 import chess.pgn
 import io
@@ -198,13 +198,13 @@ async def unlink(ctx, *args):
 
 @bot.command()
 async def profile(ctx, *args):
+    pg = Postgres(DATABASE_URL)
     if len(args)==0:
-        await ctx.send(f"""thanks {ctx.author}, but your message had 0 arguments and is invalid. Please retry 
-        with a specified username""")
+        profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (ctx.author,))
     else:
         pg = Postgres(DATABASE_URL)
-        profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (author,))
-        await ctx.send(profile_result)
+        profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (args[1],))
+    await ctx.send(profile_result)
 
 # @bot.command()
 # async def rank(ctx):
@@ -246,8 +246,8 @@ async def pgn(ctx, arg):
 
 @bot.command()
 async def fen(ctx, *, arg):
-    board = chess.Board(arg)
-    svg = chess.svg.board(board=board)
+    board = chess_py.Board(arg)
+    svg = chess_py.svg.board(board=board)
     png = cairosvg.svg2png(bytestring=svg)
     f = discord.File(io.BytesIO(png), "board.png")
     await ctx.send(file=f)
