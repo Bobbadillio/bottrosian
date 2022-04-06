@@ -237,8 +237,8 @@ async def top(ctx):
 #     await ctx.send("open isn't yet implemented")
 
 @bot.command()
-async def pgn(ctx, arg):
-    final_position = chesspgn.read_game(io.StringIO(arg)).end().board()
+async def pgn(ctx, *args):
+    final_position = chesspgn.read_game(io.StringIO(" ".join(args))).end().board()
     svg = chesssvg.board(board=final_position)
     png = cairosvg.svg2png(bytestring=svg)
     f = discord.File(io.BytesIO(png), "board.png")
