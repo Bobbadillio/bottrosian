@@ -33,7 +33,7 @@ class Postgres(object):
             with self.connection, self.connection.cursor() as cursor:
                 cursor.execute(query,params)
                 try:
-                    result = cursor.fetchone()
+                    result = cursor.fetchall()
                 except psycopg2.ProgrammingError:
                     return None
         except Exception as error:
