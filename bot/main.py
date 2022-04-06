@@ -75,7 +75,7 @@ async def chess(ctx, *args):
     update belts
     """
     if len(args)==0:
-        await ctx.send(f"thanks {ctx.author}, but your message {ctx.message} had 0 arguments and is invalid")
+        await ctx.send(f"thanks {ctx.author}, but your message had 0 arguments and is invalid")
     else:
         username = args[0]
         author = str(ctx.author)
@@ -147,7 +147,7 @@ def EnsureAuthorExists(author):
 @bot.command()
 async def lichess(ctx, *args):
     if len(args)==0:
-        await ctx.send(f"thanks {ctx.author}, but your message {ctx.message} had 0 arguments and is invalid")
+        await ctx.send(f"thanks {ctx.author}, but your message had 0 arguments and is invalid")
     else:
         username = args[0]
         author = str(ctx.author)
@@ -209,7 +209,7 @@ async def unlink(ctx, *args):
                 deletion_result = pg.query("""DELETE FROM chesscom_profiles WHERE discord_id = %s RETURNING *""", (author,))
                 await ctx.send(f"""User {ctx.author} removed? {deletion_result}""")
         else:
-            await ctx.send(f"""thanks {ctx.author}, but your message {ctx.message} tried to unlink you from '{args[0]}'
+            await ctx.send(f"""thanks {ctx.author}, but your message tried to unlink you from '{args[0]}'
             which is invalid. please try !unlink chess or !unlink lichess""")
 
 @bot.command()
