@@ -5,6 +5,7 @@ import asyncio
 import cairosvg
 import chess
 import chess.svg
+import chess.pgn
 import io
 from PostgresManager import Postgres
 
@@ -197,10 +198,11 @@ async def unlink(ctx, *args):
 
 @bot.command()
 async def profile(ctx, *args):
-    if len(args==0):
+    if len(args)==0:
         await ctx.send(f"""thanks {ctx.author}, but your message had 0 arguments and is invalid. Please retry 
         with a specified username""")
     else:
+        pg = Postgres(DATABASE_URL)
         profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (author,))
         await ctx.send(profile_result)
 
@@ -218,11 +220,11 @@ async def profile(ctx, *args):
 async def top(ctx):
     pg = Postgres(DATABASE_URL)
     chesscom_results = pg.query("""select chesscom_username as username, last_chesscom_elo as elo from chesscom_profiles order by elo desc limit 10;""")
-    await ctx.send(chesscom_results)
+    await ctx.send(f"{chesscom_results} ")
 
     lichess_results = pg.query(
         """select lichess_username as username, last_lichess_elo as elo from lichess_profiles order by elo desc limit 10;""")
-    await ctx.send(lichess_results)
+    await ctx.send(f"{lichess_results} ")
 
 # @bot.command()
 # async def tactic(ctx):
