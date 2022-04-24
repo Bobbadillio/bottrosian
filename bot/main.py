@@ -15,11 +15,13 @@ from chessdotcom.types import ChessDotComError
 
 import discord
 from discord.ext import tasks, commands
+from discord.utils import get
 
 bot = commands.Bot(command_prefix="!")
 TOKEN = os.getenv("DISCORD_TOKEN")
 DATABASE_URL = os.environ['DATABASE_URL']
 POSTGRES_OBJECT = Postgres(DATABASE_URL)
+
 
 @bot.event
 async def on_ready():
@@ -295,6 +297,22 @@ async def progress(ctx):
 # async def addlichess(ctx):
 #     #TODO: probably overlaps with lichess command, probably won't implement
 #     await ctx.send("addlichess isn't yet implemented")
+
+@bot.command(pass_context=True)
+async def setbelt(ctx, color):
+    member = ctx.message.author
+
+    retrieved = get(member.guild.roles, name=f"{color} Belt")
+    if retrieved is None:
+        await ctx.send(f"No such role {color} Belt. Please pick one of: f{' '.join(BELT_COLORS)}")
+        return
+
+    old_belts = [each_role for each_role in member.roles if "Belt" in each_role.name and each_role.name!=f"{color} Belt"]
+    if len(old_belts)>0:
+        await member.remove_roles(*old_belts)
+    await member.add_roles(retrieved)
+
+BELT_COLORS = ["Black", "Red", "Brown", "Purple", "Blue", "Green", "Orange", "Yellow", "White"]
 
 CHESS_COM_BELTS = [
     (2400, "Black"),
