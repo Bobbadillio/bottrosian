@@ -78,122 +78,158 @@ async def chess(ctx, *args):
     """
     if len(args)==0:
         await ctx.send(f"thanks {ctx.author}, but your message had 0 arguments and is invalid")
-    else:
-        username = args[0]
-        author = str(ctx.author)
+        return
 
-        EnsureAuthorExists(author)
+    username = args[0]
+    author = str(ctx.author)
 
-        # getting chess.com info
+    # Create the discord user if it doesn't exist
+    EnsureDiscordAuthorExists(author)
+
+    # getting chess.com info
+    try:
+        profile = await get_player_profile(username)
+    except ChessDotComError:
+        await ctx.send(f"Unable to read chess.com profile for {username}")
+        return
+
+
+    pg = Postgres(DATABASE_URL)
+    retrieved_chess_profiles = pg.query("SELECT * from chesscom_profiles WHERE discord_id = %s", (author,))
+
+    if len(retrieved_chess_profiles)==0:
+        # first time handshake
         try:
-            profile = await get_player_profile(username)
-        except ChessDotComError:
-            await ctx.send(f"Unable to read chess.com profile for {username}")
+            location = profile.player.location
+        except AttributeError:
+            await ctx.send(f"{username} does not have a location set. Your chess.com profile must have its location set to your Discord ID ({author})")
+            return
+
+        if location != author:
+            await ctx.send(f"Handshake failed. Your chess.com profile must have its location set to your Discord ID ({author}).")
             return
 
 
-        pg = Postgres(DATABASE_URL)
-        retrieved_chess_profiles = pg.query("SELECT * from chesscom_profiles WHERE discord_id = %s", (author,))
-        if len(retrieved_chess_profiles)==0:
-            retrieved_chess_profile = None
-        else:
-            retrieved_chess_profile = retrieved_chess_profiles[0]
 
-        if retrieved_chess_profile is None:
-            try:
-                location = profile.player.location
-            except AttributeError:
-                await ctx.send(f"{username} does not have a location set. Your chess.com profile must have its location set to your Discord ID ({author})")
-                return
-
-            if location != author:
-                await ctx.send(f"Handshake failed. Your chess.com profile must have its location set to your Discord ID ({author}).")
-                return
-            else:
-                stats = await get_player_stats(username)
-                try:
-                    rapid_stats = stats.stats.chess_rapid
-                except AttributeError:
-                    await ctx.send(f"{username} does not have a rapid rating. Have you played enough games for a stable rating?")
-                    return
-                rapid_rating = rapid_stats.last.rating
-                mapped_belt = chess_com_to_belt(rapid_rating)
-                pg.query("""INSERT INTO chesscom_profiles (chesscom_username, discord_id, last_chesscom_elo, previous_chesscom_elo)
-                    VALUES (%s, %s, %s, %s);
-                    """, (username, author, rapid_rating, rapid_rating))
-                pg.query("""UPDATE authenticated_users SET dojo_belt = GREATEST(dojo_belt, %s)""",(mapped_belt,))
-                await ctx.send(
-                    f"Your rapid rating on chess.com is {rapid_rating}.\nThat makes you a {mapped_belt} Belt.")
-        else:
-            await ctx.send(f"Skipping handshake. User {ctx.author} already in database. found {retrieved_chess_profile}.\nTry !update or !profile")
+    await update_chesscom(ctx, author, username)
+    await update_belt(ctx, author)
+    await ctx.send(
+        f"Your rapid rating on chess.com is {rapid_rating}.\nThat makes you a {mapped_belt} Belt.")
 
 
 
 
-def EnsureAuthorExists(author):
+def EnsureDiscordAuthorExists(author):
     """Adds authenticated users if doesn't exist"""
     pg = Postgres(DATABASE_URL)
-    user_lookups = pg.query("SELECT * FROM authenticated_users WHERE discord_id = %s",
-                           (author,))
-    if len(user_lookups) == 0:
-        user_lookup = None
-    else:
-        user_lookup = user_lookups[0]
+    pg.query("""INSERT INTO authenticated_users (discord_id, ) VALUES (%s, ) ON CONFLICT DO NOTHING; """, (author,))
 
-    if user_lookup is None:
-        pg.query("""INSERT INTO authenticated_users (discord_id, dojo_belt, mod_awarded_belt)
-            VALUES (%s, %s, %s);
-            """, (author, None, None))
 
 
 @bot.command()
 async def lichess(ctx, *args):
+    """lichess command will create or update a lichess profile for the sending discord user according given a username"""
+    ### steps:
+    # Validate input
     if len(args)==0:
         await ctx.send(f"thanks {ctx.author}, but your message had 0 arguments and is invalid")
-    else:
-        username = args[0]
-        author = str(ctx.author)
+        return
 
-        EnsureAuthorExists(author)
-        try:
-            pg = Postgres(DATABASE_URL)
-            retrieved_lichess_profiles = pg.query("SELECT * from lichess_profiles WHERE discord_id = %s", (author,))
-            if len(retrieved_lichess_profiles) == 0:
-                retrieved_lichess_profile = None
-            else:
-                retrieved_lichess_profile = retrieved_lichess_profiles[0]
+    username = args[0]
+    author = str(ctx.author)
 
-            if retrieved_lichess_profile is not None:
-                await ctx.send(f"Skipping handshake. User {ctx.author} already in database. Try !update or !profile")
-            else:
-                client = berserk.Client()
-                profile = client.users.get_public_data(username)
-                bio = profile.get("profile", dict()).get("bio", "")
-                if author not in bio:
-                    await ctx.send(f"Handshake failed. Your lichess profile must have your Discord ID ({author}) in your bio")
-                    return
-                else:
-                    classical =  profile.get("perfs",dict()).get("classical",dict())
-                    if classical.get('prov',False) and classical.get("rating") is not None:
-                        await ctx.send(f"{username} does not have a classical rating. Have you played enough games on lichess for a stable rating?")
-                    else:
-                        classical_rating = classical.get("rating")
-                        mapped_belt = lichess_to_belt(classical_rating)
-                        pg.query("""INSERT INTO lichess_profiles (chesscom_username, discord_id, last_chesscom_elo, previous_chesscom_elo)
-                            VALUES (%s, %s, %s, %s);
-                            """, (username, author, classical_rating, classical_rating))
-                        pg.query("""UPDATE authenticated_users SET dojo_belt = GREATEST(dojo_belt, %s)""",(mapped_belt,))
-                        await ctx.send(
-                            f"Your classical rating on lichess is {classical_rating}.\nThat makes you a {mapped_belt} Belt.")
+    # Create the discord user if it doesn't exist
+    EnsureDiscordAuthorExists(author)
+    try:
+        pg = Postgres(DATABASE_URL)
+        retrieved_lichess_profiles = pg.query("SELECT * from lichess_profiles WHERE discord_id = %s", (author,))
 
-        except berserk.exceptions.ResponseError as e:
-            await ctx.send(f"request to link {username} failed with error {e}")
-        except Exception as e:
-            await ctx.send(f"request to link {username} failed with unexpected error {e}")
+        # Get the lichess profile and
+        client = berserk.Client()
+        profile = client.users.get_public_data(username)
+
+        if len(retrieved_lichess_profiles) == 0:
+            # first time handshake
+            bio = profile.get("profile", dict()).get("bio", "")
+            if author not in bio:
+                await ctx.send(f"Handshake failed. Your lichess profile must have your Discord ID ({author}) in your bio")
+                return
+
+        # insert or update lichess data if rating is stable
+        await update_lichess(ctx, profile)
+        # Update belt if profile was inserted or updated
+        await update_belt(ctx, author)
+
+    except berserk.exceptions.ResponseError as e:
+        await ctx.send(f"request to link {username} failed with error {e}")
+    except Exception as e:
+        await ctx.send(f"request to link {username} failed with unexpected error {e}")
 
 @bot.command()
 async def update(ctx):
+    pg = Postgres(DATABASE_URL)
+    author = str(ctx.author)
+
+    #update lichess
+    retrieved_lichess_profiles = pg.query("SELECT lichess_username from lichess_profiles WHERE discord_id = %s", (author,))
+    if len(retrieved_lichess_profiles)>0:
+        # perform handshake and perform first time insert
+        username = retrieved_lichess_profiles[0][0]
+        client = berserk.Client()
+        profile = client.users.get_public_data(username)
+        await update_lichess(ctx, profile)
+
+    #update chesscom
+    retrieved_chesscom_profiles = pg.query("SELECT chesscom_username from chesscom_profiles WHERE discord_id = %s", (author,))
+    if len(retrieved_chesscom_profiles)>0:
+        # perform handshake and perform first time insert
+        username = retrieved_chesscom_profiles[0][0]
+        await update_chesscom(ctx, author, username)
+
+    #update belt
+    await update_belt()
+
+async def update_lichess(ctx, profile):
+    pg = Postgres(DATABASE_URL)
+    classical = profile.get("perfs", dict()).get("classical", dict())
+    if classical.get('prov', False) and classical.get("rating") is not None:
+        await ctx.send(
+            f"{str(ctx.author)} does not have a classical rating. Have you played enough games on lichess for a stable rating?")
+        return
+    classical_rating = classical.get("rating")
+    mapped_belt = lichess_to_belt(classical_rating)
+    username = profile.get("id", None)
+    author = str(ctx.author)
+    pg.query("""INSERT INTO lichess_profiles (lichess_username, discord_id, last_lichess_elo, previous_lichess_elo, lichess_belt)
+        VALUES (%s, %s, %s, %s, %s) ON CONFLICT (lichess_username) DO UPDATE SET 
+        last_lichess_elo = EXCLUDED.last_lichess_elo, lichess_belt = EXCLUDED.lichess_belt;
+        """, (username, author, classical_rating, classical_rating, mapped_belt))
+    await ctx.send("update isn't yet implemented")
+
+async def update_chesscom(ctx, author, username):
+    pg = Postgres(DATABASE_URL)
+    stats = await get_player_stats(username)
     #TODO: requires database interaction
+    try:
+        rapid_stats = stats.stats.chess_rapid
+    except AttributeError:
+        await ctx.send(f"{username} does not have a rapid rating. Have you played enough games for a stable rating?")
+        return
+    rapid_rating = rapid_stats.last.rating
+    mapped_belt = chess_com_to_belt(rapid_rating)
+    pg.query("""INSERT INTO chesscom_profiles (chesscom_username, discord_id, last_chesscom_elo, previous_chesscom_elo, chesscom_belt)
+        VALUES (%s, %s, %s, %s, %s) ON CONFLICT (chesscom_username) DO UPDATE SET 
+        last_chesscom_elo = EXCLUDED.last_chesscom_elo, chesscom_belt = EXCLUDED.chesscom_belt;
+        """, (username, author, rapid_rating, rapid_rating, mapped_belt))
+
+async def update_belt(ctx, discord_id):
+    pg = Postgres(DATABASE_URL)
+    highest_belt = pg.query("""SELECT GREATEST(awarded_belt, chesscom_belt, lichess_belt) AS belt FROM authenticated_users 
+        NATURAL LEFT JOIN mod_profiles 
+        NATURAL LEFT JOIN chesscom_profiles 
+        NATURAL LEFT JOIN lichess_profiles 
+         WHERE discord_id = %s;""", (discord_id, ))
+    setbelt(ctx, highest_belt)
     await ctx.send("update isn't yet implemented")
 
 @bot.command()
@@ -218,11 +254,16 @@ async def unlink(ctx, *args):
 async def profile(ctx, *args):
     profile_headers= ["discord id", "belt", "chess.com username", "chess.com rapid", "lichess username", "lichess classical"]
     pg = Postgres(DATABASE_URL)
-    if len(args)==0:
-        profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (str(ctx.author),))
-    else:
-        pg = Postgres(DATABASE_URL)
-        profile_result = pg.query("""select discord_id as discord, dojo_belt as belt, chesscom_username, last_chesscom_elo as chesscom_elo, lichess_username, last_lichess_elo as lichess_elo from authenticated_users natural left join chesscom_profiles natural left join lichess_profiles WHERE discord_id = %s""", (args[0],))
+    discord_id_lookup = str(ctx.author)
+    if len(args)>0:
+        discord_id_lookup = args[0]
+
+    profile_result = pg.query("""SELECT discord_id AS discord, GREATEST(awarded_belt, chesscom_belt, lichess_belt) as belt AS belt, 
+    chesscom_username, last_chesscom_elo AS chesscom_elo, lichess_username, last_lichess_elo AS lichess_elo FROM authenticated_users 
+    NATURAL LEFT JOIN chesscom_profiles 
+    NATURAL LEFT JOIN lichess_profiles 
+    NATURAL LEFT JOIN mod_profiles 
+    WHERE discord_id = %s""", (discord_id_lookup,))
 
     message_to_send = []
     for header, value in zip(profile_headers, profile_result[0]):
@@ -311,6 +352,8 @@ async def setbelt(ctx, color):
     if len(old_belts)>0:
         await member.remove_roles(*old_belts)
     await member.add_roles(retrieved)
+
+SUPER_ROLES = ["Sensei", "admin", "Admin", "Mod"]
 
 BELT_COLORS = ["Black", "Red", "Brown", "Purple", "Blue", "Green", "Orange", "Yellow", "White"]
 

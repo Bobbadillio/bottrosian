@@ -1,34 +1,39 @@
+CREATE TYPE BELT_T AS ENUM('White', 'Yellow', 'Orange', 'Green', 'Blue', 'Purple', 'Brown', 'Red', 'Black');
+
 CREATE TABLE authenticated_users
 (
-    discord_id VARCHAR(63) PRIMARY KEY,
-    dojo_belt        BELT_T,
-    mod_awarded_belt BELT_T
+    discord_id VARCHAR(63) PRIMARY KEY
+);
+
+CREATE TABLE mod_profiles (
+    discord_id VARCHAR(63) NOT NULL REFERENCES authenticated_users (discord_id) PRIMARY KEY,
+    awarded_belt BELT_T
 );
 
 CREATE TABLE chesscom_profiles
 (
     chesscom_username VARCHAR(255) PRIMARY KEY,
-    discord_id VARCHAR(63) REFERENCES authenticated_users (discord_id),
+    discord_id VARCHAR(63) NOT NULL REFERENCES authenticated_users (discord_id),
     last_chesscom_elo SMALLINT,
-    previous_chesscom_elo SMALLINT
+    previous_chesscom_elo SMALLINT,
+    chesscom_belt BELT_T
 );
 
 CREATE TABLE lichess_profiles (
     lichess_username VARCHAR(255) PRIMARY KEY,
     discord_id VARCHAR(63) NOT NULL REFERENCES authenticated_users (discord_id),
     last_lichess_elo SMALLINT,
-    previous_lichess_elo SMALLINT
+    previous_lichess_elo SMALLINT,
+    lichess_belt BELT_T
 );
-
-CREATE TYPE BELT_T AS ENUM('White', 'Yellow', 'Orange', 'Green', 'Blue', 'Purple', 'Brown', 'Red', 'Black');
 
 select * from information_schema.tables;
 
 
  SELECT
    table_name,
-  column_name,
-  data_type
+   column_name,
+   data_type
  FROM
    information_schema.columns
  WHERE
