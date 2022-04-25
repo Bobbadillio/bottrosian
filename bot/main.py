@@ -120,7 +120,7 @@ async def chess(ctx, *args):
 def EnsureDiscordAuthorExists(author):
     """Adds authenticated users if doesn't exist"""
     pg = Postgres(DATABASE_URL)
-    pg.query("""INSERT INTO authenticated_users (discord_id, ) VALUES (%s, ) ON CONFLICT DO NOTHING; """, (author,))
+    pg.query("""INSERT INTO authenticated_users VALUES (%s) ON CONFLICT DO NOTHING; """, (author,))
 
 
 
@@ -342,7 +342,7 @@ async def setbelt(ctx, color):
 
     retrieved = get(member.guild.roles, name=f"{color} Belt")
     if retrieved is None:
-        await ctx.send(f"No such role {color} Belt. Please pick one of: f{' '.join(BELT_COLORS)}")
+        await ctx.send(f"No such role {color} Belt. Please pick one of: {' '.join(BELT_COLORS)}")
         return
 
     old_belts = [each_role for each_role in member.roles if "Belt" in each_role.name and each_role.name!=f"{color} Belt"]
