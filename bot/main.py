@@ -117,6 +117,7 @@ async def chess(ctx, *args):
 
 
 
+
 def EnsureDiscordAuthorExists(author):
     """Adds authenticated users if doesn't exist"""
     pg = Postgres(DATABASE_URL)
@@ -189,12 +190,15 @@ async def update(ctx):
 
 async def update_lichess(ctx, profile):
     pg = Postgres(DATABASE_URL)
-    classical = profile.get("perfs", dict()).get("classical", dict())
-    if classical.get('prov', False) and classical.get("rating") is not None:
+    if all([value.get("prov",False) for value in profile.get("perfs", dict()).values()]):
         await ctx.send(
-            f"{str(ctx.author)} does not have a classical rating. Have you played enough games on lichess for a stable rating?")
+            f"{str(ctx.author)} does not have any stable ratings. Have you played enough games on lichess for a stable rating?")
         return
-    classical_rating = classical.get("rating")
+
+    classical = profile.get("perfs", dict()).get("classical", dict())
+    classical_rating = None
+    if not classical.get("prov",False):
+        classical_rating = classical.get("rating", None)
     mapped_belt = lichess_to_belt(classical_rating)
     username = profile.get("id", None)
     author = str(ctx.author)
@@ -202,23 +206,24 @@ async def update_lichess(ctx, profile):
         VALUES (%s, %s, %s, %s, %s) ON CONFLICT (lichess_username) DO UPDATE SET 
         last_lichess_elo = EXCLUDED.last_lichess_elo, lichess_belt = EXCLUDED.lichess_belt;
         """, (username, author, classical_rating, classical_rating, mapped_belt))
-    await ctx.send("update isn't yet implemented")
+    await ctx.send(f"{username} recorded as a lichess user with a {mapped_belt.lower()} belt")
 
 async def update_chesscom(ctx, author, username):
     pg = Postgres(DATABASE_URL)
+    live_categories = ['chess_rapid', 'chess_bullet', 'chess_blitz']
     stats = await get_player_stats(username)
-    #TODO: requires database interaction
-    try:
-        rapid_stats = stats.stats.chess_rapid
-    except AttributeError:
-        await ctx.send(f"{username} does not have a rapid rating. Have you played enough games for a stable rating?")
+    ratings = stats.json.get("stats").keys()
+    if not any([rating in live_categories for rating in ratings]):
+        await ctx.send(f"{username} does not have a stable bullet/blitz/rapid rating. Have you played enough games for a stable rating?")
         return
-    rapid_rating = rapid_stats.last.rating
+
+    rapid_rating = stats.json.get("stats", dict()).get("chess_rapid",dict()).get("last",dict()).get("rating")
     mapped_belt = chess_com_to_belt(rapid_rating)
     pg.query("""INSERT INTO chesscom_profiles (chesscom_username, discord_id, last_chesscom_elo, previous_chesscom_elo, chesscom_belt)
         VALUES (%s, %s, %s, %s, %s) ON CONFLICT (chesscom_username) DO UPDATE SET 
         last_chesscom_elo = EXCLUDED.last_chesscom_elo, chesscom_belt = EXCLUDED.chesscom_belt;
         """, (username, author, rapid_rating, rapid_rating, mapped_belt))
+    await ctx.send(f"{username} recorded as a chess.com user with a {mapped_belt.lower()} belt")
 
 async def update_belt(ctx, discord_id):
     pg = Postgres(DATABASE_URL)
@@ -368,7 +373,7 @@ async def award_belt(ctx, discord_id, color):
     pg.query("""INSERT INTO mod_profiles VALUES (%s, %s) ON CONFLICT (discord_id) 
         DO UPDATE SET awarded_belt=EXCLUDED.awarded_belt; """, (discord_id, color))
 
-    await ctx.send(f"""User {discord_id} awarded belt {color}""")
+    await ctx.send(f"""User {discord_id} awarded {color.lower()} belt """)
 
 def is_super_user(author):
     return any([each_role.name in SUPER_ROLES for each_role in author.roles])

@@ -6,14 +6,14 @@ CREATE TABLE authenticated_users
 );
 
 CREATE TABLE mod_profiles (
-    discord_id VARCHAR(63) NOT NULL REFERENCES authenticated_users (discord_id) ON DELETE CASCADE,
+    discord_id VARCHAR(63) UNIQUE NOT NULL REFERENCES authenticated_users (discord_id) ON DELETE CASCADE,
     awarded_belt BELT_T
 );
 
 CREATE TABLE chesscom_profiles
 (
     chesscom_username VARCHAR(255) PRIMARY KEY,
-    discord_id VARCHAR(63) NOT NULL REFERENCES authenticated_users (discord_id) ON DELETE CASCADE,
+    discord_id VARCHAR(63) UNIQUE NOT NULL REFERENCES authenticated_users (discord_id) ON DELETE CASCADE,
     last_chesscom_elo SMALLINT,
     previous_chesscom_elo SMALLINT,
     chesscom_belt BELT_T
@@ -21,7 +21,7 @@ CREATE TABLE chesscom_profiles
 
 CREATE TABLE lichess_profiles (
     lichess_username VARCHAR(255) PRIMARY KEY,
-    discord_id VARCHAR(63) NOT NULL REFERENCES authenticated_users (discord_id) ON DELETE CASCADE,
+    discord_id VARCHAR(63) UNIQUE NOT NULL REFERENCES authenticated_users (discord_id) ON DELETE CASCADE,
     last_lichess_elo SMALLINT,
     previous_lichess_elo SMALLINT,
     lichess_belt BELT_T
