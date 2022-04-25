@@ -1,6 +1,13 @@
-# Hosting your discord.py bot on Heroku
+# Bottrosian: A successor to Bot-vinnik
+### What's the history of this bot?
+This bot was created for the ChessDojo discord community based on a guide to hosting python bots on Heroku. 
+(see the forked repository)
+
 ### What are the prerequisites for this guide?
-You must have an account for Discord [[Link](https://discordapp.com/developers/applications/)], GitHub [[Link](https://github.com/join)] , and Heroku [[Link](https://signup.heroku.com/)].
+You must have an account for:
+* Discord [[Link](https://discordapp.com/developers/applications/)]
+* GitHub [[Link](https://github.com/join)]
+* Heroku [[Link](https://signup.heroku.com/)].
 
 ### How do I create a bot and get a bot token?
 * Create an application in the developer portal by clicking [here](https://discordapp.com/developers/applications/)
@@ -11,7 +18,7 @@ You must have an account for Discord [[Link](https://discordapp.com/developers/a
 * Fork a copy of this repository by clicking the 'Fork' on the upper right-hand.
 * Create an application for Heroku by clicking [here](https://dashboard.heroku.com/new-app).
 * Under 'Deploy', do the following:
-  * Deployment Method => Connect your GitHub
+  * Deployment Method => Connect your GitHub (**note**: heroku does not support GitHub as of 4/25 due to a security breach)
   * App connected to GitHub => Search for the forked repository
   * Automatic Deploy => Enable Automatic Deploy (to redeploy after every commit)
 * Under 'Settings', click on 'Reveal Config Vars' and enter the following:
@@ -24,6 +31,10 @@ You must have an account for Discord [[Link](https://discordapp.com/developers/a
   * Click 'Confirm' to finalize the decision.
   * NOTE: You are allocated 550 free Dyno hours, which will not last the entire month. However, if you provide a credit card to verify your identity, you are given an additional 450 hours, which will allow your bot to run indefinitely.
 
-# TO-DO LIST
-* Revise the tutorial to be easier to understand for any user.
-* Add some images for following along with the process.
+# Bottrosian TO-DO LIST
+* update the PostgresManager class to optionally return a single value rather than a list of tuples returned by the query
+* create a daily leaderboard update&post
+* track user progress
+* make profile result prettier
+* find a better way to test locally
+

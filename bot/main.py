@@ -21,19 +21,38 @@ bot = commands.Bot(command_prefix="!")
 TOKEN = os.getenv("DISCORD_TOKEN")
 DATABASE_URL = os.environ['DATABASE_URL']
 POSTGRES_OBJECT = Postgres(DATABASE_URL)
+SUPER_ROLES = ["Sensei", "admin", "Admin", "Mod"]
+BELT_COLORS = ["Black", "Red", "Brown", "Purple", "Blue", "Green", "Orange", "Yellow", "White"]
 
+CHESS_COM_BELTS = [
+    (2400, "Black"),
+    (2200, "Red"),
+    (2000, "Brown"),
+    (1800, "Purple"),
+    (1600, "Blue"),
+    (1400, "Green"),
+    (1200, "Orange"),
+    (1000, "Yellow"),
+    (0,    "White")
+]
+
+LICHESS_BELTS = [
+    (2400, "Black"),
+    (2200, "Red"),
+    (2100, "Brown"),
+    (2000, "Purple"),
+    (1800, "Blue"),
+    (1600, "Green"),
+    (1400, "Orange"),
+    (1200, "Yellow"),
+    (0,    "White")
+]
 
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user.name}({bot.user.id})")
 
-ORIGINAL_COMMANDS = """
-.lichess
-.lichess [lichess username] / .chess [chess.com username] to link your accounts
-.update
-To update your profile
-.unlink
-To unlink your chess.com/lichess.org accounts
+UNIMPLEMENTED_COMMANDS = """
 .profile
 To view your profile. To check others profile -> .profile @user
 .rank
@@ -41,9 +60,6 @@ Displays your current rank in the server (based on your lichess/chess.com rating
 .page
 Displays players close to your rank
 .top
-Displays top 10 players of the server. i.e Leaderboard
-.pgn
-Pops an image out of PGN. Will be handy for coaches.  Example: .pgn d4 c6 Nf3
 verfication (Automatic)
 Challenge a person and paste the invite link in any channel :D (lichess only)
 .progress
@@ -72,16 +88,13 @@ To check your progress"""
 
 @bot.command()
 async def chess(ctx, *args):
-    """ Should connect once daily to chess.com to:
-    get rating change
-    update belts
-    """
+    """ link a chess.com account with discord user ID in location. usage: !chess ChesscomUsername"""
+    author = str(ctx.author)
     if len(args)==0:
-        await ctx.send(f"thanks {ctx.author}, but your message had 0 arguments and is invalid")
+        await ctx.send(f"please specify chess.com username with your discord user ID({author}) in the location field. usage: !chess ChesscomUsername")
         return
 
     username = args[0]
-    author = str(ctx.author)
 
     # Create the discord user if it doesn't exist
     EnsureDiscordAuthorExists(author)
@@ -116,26 +129,17 @@ async def chess(ctx, *args):
 
 
 
-
-
-def EnsureDiscordAuthorExists(author):
-    """Adds authenticated users if doesn't exist"""
-    pg = Postgres(DATABASE_URL)
-    pg.query("""INSERT INTO authenticated_users VALUES (%s) ON CONFLICT DO NOTHING; """, (author,))
-
-
-
 @bot.command()
 async def lichess(ctx, *args):
-    """lichess command will create or update a lichess profile for the sending discord user according given a username"""
+    """link a lichess account with discord user ID in bio. usage: !lichess LichessUsername"""
     ### steps:
     # Validate input
+    author = str(ctx.author)
     if len(args)==0:
-        await ctx.send(f"thanks {ctx.author}, but your message had 0 arguments and is invalid")
+        await ctx.send(f"Please specify a lichess account with your discord user ID({author}) in bio. usage: !lichess LichessUsername")
         return
 
     username = args[0]
-    author = str(ctx.author)
 
     # Create the discord user if it doesn't exist
     EnsureDiscordAuthorExists(author)
@@ -166,6 +170,7 @@ async def lichess(ctx, *args):
 
 @bot.command()
 async def update(ctx):
+    """Updates your lichess and chess.com ratings, and recalculates your belt. usage: !update"""
     pg = Postgres(DATABASE_URL)
     author = str(ctx.author)
 
@@ -187,12 +192,128 @@ async def update(ctx):
 
     #update belt
     await update_belt(ctx, author)
+    await ctx.send(f"update complete for {author}")
+
+@bot.command()
+async def unlink(ctx, *args):
+    """ this command unlinks chess.com, lichess or both profiles with !unlink !unlink chess or !unlink lichess"""
+    pg = Postgres(DATABASE_URL)
+    author = str(ctx.author)
+    if len(args)== 0:
+        lichess_deletion = pg.query("""DELETE FROM lichess_profiles WHERE discord_id = %s RETURNING *""", (author,))
+        chesscom_deletion = pg.query("""DELETE FROM chesscom_profiles WHERE discord_id = %s RETURNING *""", (author,))
+        await ctx.send(f"""Unlinking {ctx.author} from chess.com and lichess. 
+        Chess.com {"not " if chesscom_deletion==0 else ""}unlinked. 
+        lichess {"not " if lichess_deletion == 0 else ""}unlinked.""")
+    else:
+        if args[0] == "lichess":
+                lichess_deletion = pg.query("""DELETE FROM lichess_profiles WHERE discord_id = %s RETURNING *""", (author,))
+                await ctx.send(f"""User {ctx.author} {"not " if lichess_deletion == 0 else ""}unlinked from lichess""")
+        elif args[0] == "chess":
+                chesscom_deletion = pg.query("""DELETE FROM chesscom_profiles WHERE discord_id = %s RETURNING *""", (author,))
+                await ctx.send(f"""User {ctx.author} {"not " if chesscom_deletion == 0 else ""}unlinked from lichess""")
+        else:
+            await ctx.send(f"""thanks {ctx.author}, but your message tried to unlink you from '{args[0]}'
+            which is invalid. please try !unlink !unlink chess or !unlink lichess""")
+
+@bot.command()
+async def profile(ctx, *args):
+    """this command returns a profile based on your linked chess.com and/or lichess profiles. usage: !profile"""
+    #TODO: Make this look pretty like it used to look!
+    profile_headers= ["discord id", "belt", "chess.com username", "chess.com rapid", "lichess username", "lichess classical"]
+    pg = Postgres(DATABASE_URL)
+    discord_id_lookup = str(ctx.author)
+    if len(args)>0:
+        discord_id_lookup = args[0]
+
+    profile_result = pg.query("""SELECT discord_id AS discord, GREATEST(awarded_belt, chesscom_belt, lichess_belt) AS belt, 
+    chesscom_username, last_chesscom_elo AS chesscom_elo, lichess_username, last_lichess_elo AS lichess_elo FROM authenticated_users 
+    NATURAL LEFT JOIN chesscom_profiles 
+    NATURAL LEFT JOIN lichess_profiles 
+    NATURAL LEFT JOIN mod_profiles 
+    WHERE discord_id = %s""", (discord_id_lookup,))
+
+    message_to_send = []
+    for header, value in zip(profile_headers, profile_result[0]):
+        message_to_send.append(f"{header}: {value}")
+    final_message = '\n'.join(message_to_send)
+    await ctx.send(f"{final_message} ")
+
+@bot.command()
+async def top(ctx):
+    """this command returns a list of the top 10 rated players in the dojo based on chess.com rapid and lichess classical. usage: !top"""
+    pg = Postgres(DATABASE_URL)
+    chesscom_top_headers = ["chess.com username", "chess.com rapid"]
+    chesscom_results = pg.query("""select chesscom_username as username, last_chesscom_elo as elo from chesscom_profiles order by elo desc limit 10;""")
+    await ctx.send(f"```{tabulate.tabulate(chesscom_results, headers=chesscom_top_headers)}```\n ")
+
+    lichess_top_headers = ["lichess username", "lichess classical"]
+    lichess_results = pg.query(
+        """select lichess_username as username, last_lichess_elo as elo from lichess_profiles order by elo desc limit 10;""")
+    await ctx.send(f"```{tabulate.tabulate(lichess_results,headers=lichess_top_headers)}```\n ")
+
+@bot.command()
+async def pgn(ctx, *args):
+    """displays a position based on a pgn. usage: !pgn 1.d4 e6 2.e4 d5 3.Nc3 c5 4.Nf3 Nc6 5.exd5 exd5 6.Be2 Nf6 7.O-O"""
+    final_position = chesspgn.read_game(io.StringIO(" ".join(args))).end().board()
+    svg = chesssvg.board(board=final_position)
+    png = cairosvg.svg2png(bytestring=svg)
+    f = discord.File(io.BytesIO(png), "board.png")
+    await ctx.send(file=f)
+
+@bot.command()
+async def fen(ctx, *, arg):
+    """displays a position based on a fen. usage: !fen 5rk1/pp4pp/4p3/2R3Q1/3n4/6qr/P1P2PPP/5RK1 w - - 2 24"""
+    board = chess_py.Board(arg)
+    svg = chess_py.svg.board(board=board)
+    png = cairosvg.svg2png(bytestring=svg)
+    f = discord.File(io.BytesIO(png), "board.png")
+    await ctx.send(file=f)
+
+@bot.command()
+async def progress(ctx):
+    """not currently implemented. """
+    #TODO: requires database interaction
+    await ctx.send("progress isn't yet implemented")
+
+@bot.command()
+async def delete(ctx, discord_id):
+    """Admin/Mod/Sensei role command to delete users from the database."""
+    if not is_super_user(ctx.author):
+        await ctx.send(f"user {str(ctx.author)} not authorized to delete")
+        return
+    pg = Postgres(DATABASE_URL)
+    pg.query("""DELETE FROM authenticated_users WHERE discord_id = %s RETURNING *""", (discord_id,))
+    await ctx.send(f"user {discord_id} deleted by {str(ctx.author)}")
+
+@bot.command()
+async def award_belt(ctx, discord_id, color):
+    """Admin/Mod/Sensei role command to award users a belt."""
+    if not is_super_user(ctx.author):
+        await ctx.send(f"user {str(ctx.author)} not authorized to award belts")
+        return
+
+    pg = Postgres(DATABASE_URL)
+    pg.query("""INSERT INTO mod_profiles VALUES (%s, %s) ON CONFLICT (discord_id) 
+        DO UPDATE SET awarded_belt=EXCLUDED.awarded_belt; """, (discord_id, color))
+
+    await ctx.send(f"""User {discord_id} awarded {color.lower()} belt """)
+
+
+@bot.command()
+async def source(ctx):
+    """A command to get a link to this bot's source code on github"""
+    await ctx.send(f"""https://github.com/Bobbadillio/bottrosian""")
+
+
+def is_super_user(author):
+    return any([each_role.name in SUPER_ROLES for each_role in author.roles])
 
 async def update_lichess(ctx, profile):
     pg = Postgres(DATABASE_URL)
     if all([value.get("prov",False) for value in profile.get("perfs", dict()).values()]):
         await ctx.send(
-            f"{str(ctx.author)} does not have any stable ratings. Have you played enough games on lichess for a stable rating?")
+            f"{str(ctx.author)} does not have any stable ratings on lichess. Have you played enough recent games on lichess for a stable rating?")
         return
 
     classical = profile.get("perfs", dict()).get("classical", dict())
@@ -214,7 +335,7 @@ async def update_chesscom(ctx, author, username):
     stats = await get_player_stats(username)
     ratings = stats.json.get("stats").keys()
     if not any([rating in live_categories for rating in ratings]):
-        await ctx.send(f"{username} does not have a stable bullet/blitz/rapid rating. Have you played enough games for a stable rating?")
+        await ctx.send(f"{username} does not have a stable bullet/blitz/rapid rating on chess.com. Have you played enough recent games for a stable rating?")
         return
 
     rapid_rating = stats.json.get("stats", dict()).get("chess_rapid",dict()).get("last",dict()).get("rating")
@@ -224,122 +345,6 @@ async def update_chesscom(ctx, author, username):
         last_chesscom_elo = EXCLUDED.last_chesscom_elo, chesscom_belt = EXCLUDED.chesscom_belt;
         """, (username, author, rapid_rating, rapid_rating, mapped_belt))
     await ctx.send(f"{username} recorded as a chess.com user with a {mapped_belt.lower()} belt")
-
-async def update_belt(ctx, discord_id):
-    pg = Postgres(DATABASE_URL)
-    highest_belt = pg.query("""SELECT GREATEST(awarded_belt, chesscom_belt, lichess_belt) AS belt FROM authenticated_users 
-        NATURAL LEFT JOIN mod_profiles 
-        NATURAL LEFT JOIN chesscom_profiles 
-        NATURAL LEFT JOIN lichess_profiles 
-         WHERE discord_id = %s;""", (discord_id, ))
-    await setbelt(ctx, highest_belt[0][0])
-
-@bot.command()
-async def unlink(ctx, *args):
-    if len(args)== 0:
-        await ctx.send(f"""thanks {ctx.author}, but your message had 0 arguments and is invalid. Please retry 
-        with either !unlink chess or !unlink lichess""")
-    else:
-        pg = Postgres(DATABASE_URL)
-        author = str(ctx.author)
-        if args[0] == "lichess":
-                deletion_result = pg.query("""DELETE FROM lichess_profiles WHERE discord_id = %s RETURNING *""", (author,))
-                await ctx.send(f"""User {ctx.author} removed? {deletion_result}""")
-        elif args[0] == "chess":
-                deletion_result = pg.query("""DELETE FROM chesscom_profiles WHERE discord_id = %s RETURNING *""", (author,))
-                await ctx.send(f"""User {ctx.author} removed? {deletion_result}""")
-        else:
-            await ctx.send(f"""thanks {ctx.author}, but your message tried to unlink you from '{args[0]}'
-            which is invalid. please try !unlink chess or !unlink lichess""")
-
-@bot.command()
-async def profile(ctx, *args):
-    profile_headers= ["discord id", "belt", "chess.com username", "chess.com rapid", "lichess username", "lichess classical"]
-    pg = Postgres(DATABASE_URL)
-    discord_id_lookup = str(ctx.author)
-    if len(args)>0:
-        discord_id_lookup = args[0]
-
-    profile_result = pg.query("""SELECT discord_id AS discord, GREATEST(awarded_belt, chesscom_belt, lichess_belt) AS belt, 
-    chesscom_username, last_chesscom_elo AS chesscom_elo, lichess_username, last_lichess_elo AS lichess_elo FROM authenticated_users 
-    NATURAL LEFT JOIN chesscom_profiles 
-    NATURAL LEFT JOIN lichess_profiles 
-    NATURAL LEFT JOIN mod_profiles 
-    WHERE discord_id = %s""", (discord_id_lookup,))
-
-    message_to_send = []
-    for header, value in zip(profile_headers, profile_result[0]):
-        message_to_send.append(f"{header}: {value}")
-    final_message = '\n'.join(message_to_send)
-    await ctx.send(f"{final_message} ")
-
-# @bot.command()
-# async def rank(ctx):
-#     #TODO: requires database interaction
-#     await ctx.send("rank isn't yet implemented")
-
-# @bot.command()
-# async def page(ctx):
-#     #TODO: requires database interaction
-#     await ctx.send("page isn't yet implemented")
-
-@bot.command()
-async def top(ctx):
-    pg = Postgres(DATABASE_URL)
-    chesscom_top_headers = ["chess.com username", "chess.com rapid"]
-    chesscom_results = pg.query("""select chesscom_username as username, last_chesscom_elo as elo from chesscom_profiles order by elo desc limit 10;""")
-    await ctx.send(f"```{tabulate.tabulate(chesscom_results, headers=chesscom_top_headers)}```\n ")
-
-    lichess_top_headers = ["lichess username", "lichess classical"]
-    lichess_results = pg.query(
-        """select lichess_username as username, last_lichess_elo as elo from lichess_profiles order by elo desc limit 10;""")
-    await ctx.send(f"```{tabulate.tabulate(lichess_results,headers=lichess_top_headers)}```\n ")
-
-# @bot.command()
-# async def tactic(ctx):
-#     #TODO: low priority, probably won't implement
-#     await ctx.send("tactic isn't yet implemented")
-
-# @bot.command()
-# async def open(ctx):
-#     #TODO: low priority, probably won't implement
-#     await ctx.send("open isn't yet implemented")
-
-@bot.command()
-async def pgn(ctx, *args):
-    final_position = chesspgn.read_game(io.StringIO(" ".join(args))).end().board()
-    svg = chesssvg.board(board=final_position)
-    png = cairosvg.svg2png(bytestring=svg)
-    f = discord.File(io.BytesIO(png), "board.png")
-    await ctx.send(file=f)
-
-@bot.command()
-async def fen(ctx, *, arg):
-    board = chess_py.Board(arg)
-    svg = chess_py.svg.board(board=board)
-    png = cairosvg.svg2png(bytestring=svg)
-    f = discord.File(io.BytesIO(png), "board.png")
-    await ctx.send(file=f)
-
-# @bot.command()
-# async def verification(ctx):
-#     #TODO: I'm not sure what this should do. Likely won't implement.
-#     await ctx.send("verification isn't yet implemented")
-
-@bot.command()
-async def progress(ctx):
-    #TODO: requires database interaction
-    await ctx.send("progress isn't yet implemented")
-
-# @bot.command()
-# async def addchess(ctx):
-#     #TODO: probably overlaps with chess command, probably won't implement
-#     await ctx.send("addchess isn't yet implemented")
-
-# @bot.command()
-# async def addlichess(ctx):
-#     #TODO: probably overlaps with lichess command, probably won't implement
-#     await ctx.send("addlichess isn't yet implemented")
 
 async def setbelt(ctx, color):
     member = ctx.message.author
@@ -354,57 +359,14 @@ async def setbelt(ctx, color):
         await member.remove_roles(*old_belts)
     await member.add_roles(retrieved)
 
-@bot.command()
-async def delete(ctx, discord_id):
-    if not is_super_user(ctx.author):
-        await ctx.send(f"user {str(ctx.author)} not authorized to delete")
-        return
+async def update_belt(ctx, discord_id):
     pg = Postgres(DATABASE_URL)
-    pg.query("""DELETE FROM authenticated_users WHERE discord_id = %s RETURNING *""", (discord_id,))
-    await ctx.send(f"user {discord_id} deleted by {str(ctx.author)}")
-
-@bot.command()
-async def award_belt(ctx, discord_id, color):
-    if not is_super_user(ctx.author):
-        await ctx.send(f"user {str(ctx.author)} not authorized to award belts")
-        return
-
-    pg = Postgres(DATABASE_URL)
-    pg.query("""INSERT INTO mod_profiles VALUES (%s, %s) ON CONFLICT (discord_id) 
-        DO UPDATE SET awarded_belt=EXCLUDED.awarded_belt; """, (discord_id, color))
-
-    await ctx.send(f"""User {discord_id} awarded {color.lower()} belt """)
-
-def is_super_user(author):
-    return any([each_role.name in SUPER_ROLES for each_role in author.roles])
-
-SUPER_ROLES = ["Sensei", "admin", "Admin", "Mod"]
-
-BELT_COLORS = ["Black", "Red", "Brown", "Purple", "Blue", "Green", "Orange", "Yellow", "White"]
-
-CHESS_COM_BELTS = [
-    (2400, "Black"),
-    (2200, "Red"),
-    (2000, "Brown"),
-    (1800, "Purple"),
-    (1600, "Blue"),
-    (1400, "Green"),
-    (1200, "Orange"),
-    (1000, "Yellow"),
-    (0,    "White")
-]
-
-LICHESS_BELTS = [
-    (2400, "Black"),
-    (2200, "Red"),
-    (2100, "Brown"),
-    (2000, "Purple"),
-    (1800, "Blue"),
-    (1600, "Green"),
-    (1400, "Orange"),
-    (1200, "Yellow"),
-    (0,    "White")
-]
+    highest_belt = pg.query("""SELECT GREATEST(awarded_belt, chesscom_belt, lichess_belt) AS belt FROM authenticated_users 
+        NATURAL LEFT JOIN mod_profiles 
+        NATURAL LEFT JOIN chesscom_profiles 
+        NATURAL LEFT JOIN lichess_profiles 
+         WHERE discord_id = %s;""", (discord_id, ))
+    await setbelt(ctx, highest_belt[0][0])
 
 def chess_com_to_belt(rating):
     if rating is None:
@@ -421,6 +383,11 @@ def lichess_to_belt(rating):
         if rating > threshold:
             return name
     return "White"
+
+def EnsureDiscordAuthorExists(author):
+    """Adds authenticated users if doesn't exist"""
+    pg = Postgres(DATABASE_URL)
+    pg.query("""INSERT INTO authenticated_users VALUES (%s) ON CONFLICT DO NOTHING; """, (author,))
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
