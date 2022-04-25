@@ -113,8 +113,6 @@ async def chess(ctx, *args):
 
     await update_chesscom(ctx, author, username)
     await update_belt(ctx, author)
-    await ctx.send(
-        f"Your rapid rating on chess.com is {rapid_rating}.\nThat makes you a {mapped_belt} Belt.")
 
 
 
@@ -229,8 +227,7 @@ async def update_belt(ctx, discord_id):
         NATURAL LEFT JOIN chesscom_profiles 
         NATURAL LEFT JOIN lichess_profiles 
          WHERE discord_id = %s;""", (discord_id, ))
-    setbelt(ctx, highest_belt)
-    await ctx.send("update isn't yet implemented")
+    await setbelt(ctx, highest_belt)
 
 @bot.command()
 async def unlink(ctx, *args):
