@@ -370,8 +370,8 @@ async def award_belt(ctx, discord_id, color):
 
     await ctx.send(f"""User {discord_id} awarded belt {color}""")
 
-def is_super_user(ctx):
-    return any([each_role.name in SUPER_ROLES for each_role in ctx.author.roles])
+def is_super_user(author):
+    return any([each_role.name in SUPER_ROLES for each_role in author.roles])
 
 SUPER_ROLES = ["Sensei", "admin", "Admin", "Mod"]
 
