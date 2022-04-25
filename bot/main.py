@@ -407,16 +407,20 @@ LICHESS_BELTS = [
 ]
 
 def chess_com_to_belt(rating):
+    if rating is None:
+        return "White"
     for (threshold, name) in CHESS_COM_BELTS:
         if rating > threshold:
             return name
-    return "No"
+    return "White"
 
 def lichess_to_belt(rating):
+    if rating is None:
+        return "White"
     for (threshold, name) in LICHESS_BELTS:
         if rating > threshold:
             return name
-    return "No"
+    return "White"
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
