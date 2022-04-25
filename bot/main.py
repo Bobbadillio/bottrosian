@@ -336,7 +336,6 @@ async def progress(ctx):
 #     #TODO: probably overlaps with lichess command, probably won't implement
 #     await ctx.send("addlichess isn't yet implemented")
 
-@bot.command(pass_context=True)
 async def setbelt(ctx, color):
     member = ctx.message.author
 
@@ -349,6 +348,30 @@ async def setbelt(ctx, color):
     if len(old_belts)>0:
         await member.remove_roles(*old_belts)
     await member.add_roles(retrieved)
+
+@bot.command()
+async def delete(ctx, discord_id):
+    if not is_super_user(ctx.author):
+        await ctx.send(f"user {str(ctx.author)} not authorized to delete")
+        return
+    pg = Postgres(DATABASE_URL)
+    pg.query("""DELETE FROM authenticated_users WHERE discord_id = %s RETURNING *""", (discord_id,))
+    await ctx.send(f"user {discord_id} deleted by {str(ctx.author)}")
+
+@bot.command()
+async def award_belt(ctx, discord_id, color):
+    if not is_super_user(ctx.author):
+        await ctx.send(f"user {str(ctx.author)} not authorized to award belts")
+        return
+
+    pg = Postgres(DATABASE_URL)
+    pg.query("""INSERT INTO mod_profiles VALUES (%s, %s) ON CONFLICT (discord_id) 
+        DO UPDATE SET awarded_belt=EXCLUDED.awarded_belt; """, (discord_id, color))
+
+    await ctx.send(f"""User {discord_id} awarded belt {color}""")
+
+def is_super_user(ctx):
+    return any([each_role.name in SUPER_ROLES for each_role in ctx.author.roles])
 
 SUPER_ROLES = ["Sensei", "admin", "Admin", "Mod"]
 
