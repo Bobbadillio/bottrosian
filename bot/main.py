@@ -255,7 +255,7 @@ async def profile(ctx, *args):
     if len(args)>0:
         discord_id_lookup = args[0]
 
-    profile_result = pg.query("""SELECT discord_id AS discord, GREATEST(awarded_belt, chesscom_belt, lichess_belt) as belt AS belt, 
+    profile_result = pg.query("""SELECT discord_id AS discord, GREATEST(awarded_belt, chesscom_belt, lichess_belt) AS belt, 
     chesscom_username, last_chesscom_elo AS chesscom_elo, lichess_username, last_lichess_elo AS lichess_elo FROM authenticated_users 
     NATURAL LEFT JOIN chesscom_profiles 
     NATURAL LEFT JOIN lichess_profiles 
