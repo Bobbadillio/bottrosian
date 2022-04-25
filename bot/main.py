@@ -227,7 +227,7 @@ async def update_belt(ctx, discord_id):
         NATURAL LEFT JOIN chesscom_profiles 
         NATURAL LEFT JOIN lichess_profiles 
          WHERE discord_id = %s;""", (discord_id, ))
-    await setbelt(ctx, highest_belt[0])
+    await setbelt(ctx, highest_belt[0][0])
 
 @bot.command()
 async def unlink(ctx, *args):
