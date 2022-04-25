@@ -185,7 +185,7 @@ async def update(ctx):
         await update_chesscom(ctx, author, username)
 
     #update belt
-    await update_belt()
+    await update_belt(ctx, author)
 
 async def update_lichess(ctx, profile):
     pg = Postgres(DATABASE_URL)
