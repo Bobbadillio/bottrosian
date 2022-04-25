@@ -220,7 +220,8 @@ async def unlink(ctx, *args):
 async def profile(ctx, *args):
     """this command returns a profile based on your linked chess.com and/or lichess profiles. usage: !profile"""
     #TODO: Make this look pretty like it used to look!
-    profile_headers= ["discord id", "belt", "chess.com username", "chess.com rapid", "lichess username", "lichess classical"]
+    profile_headers= ["discord id", "belt", "chess.com username", "chess.com rapid", "lichess username", "lichess classical",
+                      "chess.com username", "lichess username"]
     pg = Postgres(DATABASE_URL)
     discord_id_lookup = str(ctx.author)
     if len(args)>0:
@@ -238,6 +239,8 @@ async def profile(ctx, *args):
         message_to_send.append(f"{header}: {value}")
     final_message = '\n'.join(message_to_send)
     await ctx.send(f"{final_message} ")
+
+
 
 @bot.command()
 async def top(ctx):
@@ -288,7 +291,7 @@ async def delete(ctx, discord_id):
 
 @bot.command()
 async def award_belt(ctx, discord_id, color):
-    """Admin/Mod/Sensei role command to award users a belt."""
+    """Admin/Mod/Sensei role command to award users a belt. usage: !award Yellow"""
     if not is_super_user(ctx.author):
         await ctx.send(f"user {str(ctx.author)} not authorized to award belts")
         return

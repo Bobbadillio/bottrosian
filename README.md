@@ -37,4 +37,5 @@ You must have an account for:
 * track user progress
 * make profile result prettier
 * find a better way to test locally
+* find a way to make update set roles for users who didn't send the command
 
