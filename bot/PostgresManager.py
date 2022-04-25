@@ -28,6 +28,7 @@ class Postgres(object):
         self.cursor = self._instance.cursor
 
     def query(self, query, params=None):
+        #TODO: This should really give some option to return a single result OR a list...
         result = None
         try:
             with self.connection, self.connection.cursor() as cursor:
