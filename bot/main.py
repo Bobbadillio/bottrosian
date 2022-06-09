@@ -215,7 +215,7 @@ async def update(ctx):
     string_to_send = f"Update complete for {author}."
     if old_belt!=new_belt:
         string_to_send += f" {author} has been awarded a {new_belt} belt!"
-    await ctx.send(f"")
+    await ctx.send(string_to_send)
 
 @bot.command()
 async def unlink(ctx, *args):
