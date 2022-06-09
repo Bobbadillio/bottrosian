@@ -258,9 +258,13 @@ async def profile(ctx, *args):
 
     message_to_send = []
     discord_id, belt, chesscom_username, chesscom_rapid, lichess_username, lichess_classical = profile_result[0]
-    message_to_send.append(f"Discord ID: {discord_id}")
-    for header, value in zip(profile_headers, profile_result[0]):
-        message_to_send.append(f"{header}: {value}")
+    message_to_send.append(f"Discord ID       : {discord_id}")
+    message_to_send.append(f"Belt             : {belt}")
+    if chesscom_username is not None:
+        message_to_send.append(f"Chess.com rapid  : {chesscom_rapid}")
+    if lichess_username is not None:
+        message_to_send.append(f"Lichess classical: {chesscom_rapid}")
+
     final_message = '\n'.join(message_to_send)
     await ctx.send(f"{final_message} ")
 
