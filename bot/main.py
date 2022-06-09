@@ -124,9 +124,7 @@ to your Discord ID ({author}). You can change the location back after your profi
 ({author}). You can change the location back after your profile is linked.")
             return
 
-
-
-    await update_chesscom(ctx, author, username)
+    await update_chesscom(ctx, author, username, quiet=False)
     await update_belt(ctx, author)
 
 
@@ -162,7 +160,7 @@ You can change the location back after your profile is linked.")
                 return
 
         # insert or update lichess data if rating is stable
-        await update_lichess(ctx, profile)
+        await update_lichess(ctx, profile, quiet=False)
         # Update belt if profile was inserted or updated
         await update_belt(ctx, author)
 
@@ -216,7 +214,7 @@ async def update(ctx):
     new_belt = profile_result[0][0]
     string_to_send = f"Update complete for {author}."
     if old_belt!=new_belt:
-        string_to_send += f" {author} is awarded a {new_belt} belt!"
+        string_to_send += f" {author} has been awarded a {new_belt} belt!"
     await ctx.send(f"")
 
 @bot.command()
@@ -338,7 +336,7 @@ async def source(ctx):
 def is_super_user(author):
     return any([each_role.name in SUPER_ROLES for each_role in author.roles])
 
-async def update_lichess(ctx, profile, old_belt=None):
+async def update_lichess(ctx, profile, old_belt=None, quiet = True):
     pg = Postgres(DATABASE_URL)
     if all([value.get("prov",False) for value in profile.get("perfs", dict()).values()]):
         await ctx.send(
@@ -356,9 +354,10 @@ async def update_lichess(ctx, profile, old_belt=None):
         VALUES (%s, %s, %s, %s, %s) ON CONFLICT (lichess_username) DO UPDATE SET 
         last_lichess_elo = EXCLUDED.last_lichess_elo, lichess_belt = EXCLUDED.lichess_belt;
         """, (username, author, classical_rating, classical_rating, mapped_belt))
-    await ctx.send(f"Lichess user successfully linked! Based on lichess classical rating, {username} has a {mapped_belt.lower()} belt")
+    if not quiet:
+        await ctx.send(f"Lichess user successfully linked! Based on lichess classical rating, {username} has a {mapped_belt.lower()} belt")
 
-async def update_chesscom(ctx, author, username, old_belt=None):
+async def update_chesscom(ctx, author, username, old_belt=None, quiet = True):
     pg = Postgres(DATABASE_URL)
     live_categories = ['chess_rapid', 'chess_bullet', 'chess_blitz']
     stats = await get_player_stats(username)
@@ -373,7 +372,8 @@ async def update_chesscom(ctx, author, username, old_belt=None):
         VALUES (%s, %s, %s, %s, %s) ON CONFLICT (chesscom_username) DO UPDATE SET 
         last_chesscom_elo = EXCLUDED.last_chesscom_elo, chesscom_belt = EXCLUDED.chesscom_belt;
         """, (username, author, rapid_rating, rapid_rating, mapped_belt))
-    await ctx.send(f"Chess.com user successfully linked! Based on Chess.com rapid, {username} has been awarded a {mapped_belt.lower()} belt")
+    if not quiet:
+        await ctx.send(f"Chess.com user successfully linked! Based on Chess.com rapid, {username} has been awarded a {mapped_belt.lower()} belt")
 
 async def setbelt(ctx, color):
     member = ctx.message.author
