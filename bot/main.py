@@ -179,6 +179,14 @@ async def update(ctx):
     pg = Postgres(DATABASE_URL)
     author = str(ctx.author)
 
+    profile_result = pg.query("""SELECT GREATEST(awarded_belt, chesscom_belt, lichess_belt) AS belt, 
+    chesscom_username, last_chesscom_elo AS chesscom_elo, lichess_username, last_lichess_elo AS lichess_elo FROM authenticated_users 
+    NATURAL LEFT JOIN chesscom_profiles 
+    NATURAL LEFT JOIN lichess_profiles 
+    NATURAL LEFT JOIN mod_profiles 
+    WHERE discord_id = %s""", (discord_id_lookup,))
+    old_belt = profile_result[0][0]
+
     #update lichess
     retrieved_lichess_profiles = pg.query("SELECT lichess_username, lichess_belt AS old_belt from lichess_profiles WHERE discord_id = %s", (author,))
     if len(retrieved_lichess_profiles)>0:
@@ -199,7 +207,17 @@ async def update(ctx):
 
     #update belt
     await update_belt(ctx, author)
-    await ctx.send(f"update complete for {author}")
+    profile_result = pg.query("""SELECT GREATEST(awarded_belt, chesscom_belt, lichess_belt) AS belt, 
+    chesscom_username, last_chesscom_elo AS chesscom_elo, lichess_username, last_lichess_elo AS lichess_elo FROM authenticated_users 
+    NATURAL LEFT JOIN chesscom_profiles 
+    NATURAL LEFT JOIN lichess_profiles 
+    NATURAL LEFT JOIN mod_profiles 
+    WHERE discord_id = %s""", (discord_id_lookup,))
+    new_belt = profile_result[0][0]
+    string_to_send = f"Update complete for {author}."
+    if old_belt!=new_belt:
+        string_to_send += f" {author} is awarded a {new_belt} belt!"
+    await ctx.send(f"")
 
 @bot.command()
 async def unlink(ctx, *args):
@@ -241,6 +259,8 @@ async def profile(ctx, *args):
     WHERE discord_id = %s""", (discord_id_lookup,))
 
     message_to_send = []
+    discord_id, belt, chesscom_username, chesscom_rapid, lichess_username, lichess_classical = profile_result[0]
+    message_to_send.append(f"Discord ID: {discord_id}")
     for header, value in zip(profile_headers, profile_result[0]):
         message_to_send.append(f"{header}: {value}")
     final_message = '\n'.join(message_to_send)
