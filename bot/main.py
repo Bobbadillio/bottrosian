@@ -184,7 +184,7 @@ async def update(ctx):
     NATURAL LEFT JOIN chesscom_profiles 
     NATURAL LEFT JOIN lichess_profiles 
     NATURAL LEFT JOIN mod_profiles 
-    WHERE discord_id = %s""", (discord_id_lookup,))
+    WHERE discord_id = %s""", (author,))
     old_belt = profile_result[0][0]
 
     #update lichess
@@ -212,7 +212,7 @@ async def update(ctx):
     NATURAL LEFT JOIN chesscom_profiles 
     NATURAL LEFT JOIN lichess_profiles 
     NATURAL LEFT JOIN mod_profiles 
-    WHERE discord_id = %s""", (discord_id_lookup,))
+    WHERE discord_id = %s""", (author,))
     new_belt = profile_result[0][0]
     string_to_send = f"Update complete for {author}."
     if old_belt!=new_belt:
