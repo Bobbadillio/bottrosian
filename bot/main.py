@@ -115,11 +115,13 @@ async def chess(ctx, *args):
         try:
             location = profile.player.location
         except AttributeError:
-            await ctx.send(f"{username} does not have a location set. Your chess.com profile must have its location set to your Discord ID ({author})")
+            await ctx.send(f"{username} does not have a location set. Your chess.com profile must have its location set\
+to your Discord ID ({author}). You can change the location back after your profile is linked.")
             return
 
         if location != author:
-            await ctx.send(f"Handshake failed. Your chess.com profile must have its location set to your Discord ID ({author}).")
+            await ctx.send(f"Verification failed. Your chess.com profile must have its location set to your Discord ID\
+({author}). You can change the location back after your profile is linked.")
             return
 
 
@@ -155,7 +157,8 @@ async def lichess(ctx, *args):
             # first time handshake
             bio = profile.get("profile", dict()).get("bio", "")
             if author not in bio:
-                await ctx.send(f"Handshake failed. Your lichess profile must have your Discord ID ({author}) in your bio")
+                await ctx.send(f"Verification failed. Your lichess profile must have your Discord ID ({author}) in your bio. \
+You can change the location back after your profile is linked.")
                 return
 
         # insert or update lichess data if rating is stable
@@ -164,9 +167,11 @@ async def lichess(ctx, *args):
         await update_belt(ctx, author)
 
     except berserk.exceptions.ResponseError as e:
-        await ctx.send(f"request to link {username} failed with error {e}")
+        logging.error(f"{e}")
+        await ctx.send(f"request to link {username} failed. This error has been logged.")
     except Exception as e:
-        await ctx.send(f"request to link {username} failed with unexpected error {e}")
+        logging.error(f"{e}")
+        await ctx.send(f"request to link {username} failed. This error has been logged.")
 
 @bot.command()
 async def update(ctx):
@@ -175,20 +180,22 @@ async def update(ctx):
     author = str(ctx.author)
 
     #update lichess
-    retrieved_lichess_profiles = pg.query("SELECT lichess_username from lichess_profiles WHERE discord_id = %s", (author,))
+    retrieved_lichess_profiles = pg.query("SELECT lichess_username, lichess_belt AS old_belt from lichess_profiles WHERE discord_id = %s", (author,))
     if len(retrieved_lichess_profiles)>0:
         # perform handshake and perform first time insert
         username = retrieved_lichess_profiles[0][0]
+        old_belt = retrieved_lichess_profiles[0][1]
         client = berserk.Client()
         profile = client.users.get_public_data(username)
-        await update_lichess(ctx, profile)
+        await update_lichess(ctx, profile, old_belt)
 
     #update chesscom
-    retrieved_chesscom_profiles = pg.query("SELECT chesscom_username from chesscom_profiles WHERE discord_id = %s", (author,))
+    retrieved_chesscom_profiles = pg.query("SELECT chesscom_username, chesscom_belt AS old_belt from chesscom_profiles WHERE discord_id = %s", (author,))
     if len(retrieved_chesscom_profiles)>0:
         # perform handshake and perform first time insert
         username = retrieved_chesscom_profiles[0][0]
-        await update_chesscom(ctx, author, username)
+        old_belt = retrieved_lichess_profiles[0][1]
+        await update_chesscom(ctx, author, username, old_belt)
 
     #update belt
     await update_belt(ctx, author)
@@ -220,8 +227,7 @@ async def unlink(ctx, *args):
 async def profile(ctx, *args):
     """this command returns a profile based on your linked chess.com and/or lichess profiles. usage: !profile"""
     #TODO: Make this look pretty like it used to look!
-    profile_headers= ["discord id", "belt", "chess.com username", "chess.com rapid", "lichess username", "lichess classical",
-                      "chess.com username", "lichess username"]
+    profile_headers= ["Discord ID", "Belt", "Chess.com Username", "Chess.com Rapid", "Lichess Username", "Lichess Classical"]
     pg = Postgres(DATABASE_URL)
     discord_id_lookup = str(ctx.author)
     if len(args)>0:
@@ -293,14 +299,14 @@ async def delete(ctx, discord_id):
 async def award_belt(ctx, discord_id, color):
     """Admin/Mod/Sensei role command to award users a belt. usage: !award Yellow"""
     if not is_super_user(ctx.author):
-        await ctx.send(f"user {str(ctx.author)} not authorized to award belts")
+        await ctx.send(f"User {str(ctx.author)} not authorized to award belts.")
         return
 
     pg = Postgres(DATABASE_URL)
     pg.query("""INSERT INTO mod_profiles VALUES (%s, %s) ON CONFLICT (discord_id) 
         DO UPDATE SET awarded_belt=EXCLUDED.awarded_belt; """, (discord_id, color))
 
-    await ctx.send(f"""User {discord_id} awarded {color.lower()} belt """)
+    await ctx.send(f"""{discord_id} was awarded the {color.lower()} belt!""")
 
 
 @bot.command()
@@ -312,7 +318,7 @@ async def source(ctx):
 def is_super_user(author):
     return any([each_role.name in SUPER_ROLES for each_role in author.roles])
 
-async def update_lichess(ctx, profile):
+async def update_lichess(ctx, profile, old_belt=None):
     pg = Postgres(DATABASE_URL)
     if all([value.get("prov",False) for value in profile.get("perfs", dict()).values()]):
         await ctx.send(
@@ -330,9 +336,9 @@ async def update_lichess(ctx, profile):
         VALUES (%s, %s, %s, %s, %s) ON CONFLICT (lichess_username) DO UPDATE SET 
         last_lichess_elo = EXCLUDED.last_lichess_elo, lichess_belt = EXCLUDED.lichess_belt;
         """, (username, author, classical_rating, classical_rating, mapped_belt))
-    await ctx.send(f"{username} recorded as a lichess user with a {mapped_belt.lower()} belt")
+    await ctx.send(f"Lichess user successfully linked! Based on lichess classical rating, {username} has a {mapped_belt.lower()} belt")
 
-async def update_chesscom(ctx, author, username):
+async def update_chesscom(ctx, author, username, old_belt=None):
     pg = Postgres(DATABASE_URL)
     live_categories = ['chess_rapid', 'chess_bullet', 'chess_blitz']
     stats = await get_player_stats(username)
@@ -347,7 +353,7 @@ async def update_chesscom(ctx, author, username):
         VALUES (%s, %s, %s, %s, %s) ON CONFLICT (chesscom_username) DO UPDATE SET 
         last_chesscom_elo = EXCLUDED.last_chesscom_elo, chesscom_belt = EXCLUDED.chesscom_belt;
         """, (username, author, rapid_rating, rapid_rating, mapped_belt))
-    await ctx.send(f"{username} recorded as a chess.com user with a {mapped_belt.lower()} belt")
+    await ctx.send(f"Chess.com user successfully linked! Based on Chess.com rapid, {username} has been awarded a {mapped_belt.lower()} belt")
 
 async def setbelt(ctx, color):
     member = ctx.message.author
