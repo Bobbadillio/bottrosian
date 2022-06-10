@@ -327,10 +327,14 @@ async def award_belt(ctx, discord_id, color):
         return
 
     pg = Postgres(DATABASE_URL)
-    pg.query("""INSERT INTO mod_profiles VALUES (%s, %s) ON CONFLICT (discord_id) 
-        DO UPDATE SET awarded_belt=EXCLUDED.awarded_belt; """, (discord_id, color.strip().capitalize()))
-
-    await ctx.send(f"""{discord_id} was awarded the {color.lower()} belt!""")
+    try:
+        pg.query("""INSERT INTO mod_profiles VALUES (%s, %s) ON CONFLICT (discord_id) 
+            DO UPDATE SET awarded_belt=EXCLUDED.awarded_belt; """, (discord_id, color.strip().capitalize()))
+        await ctx.send(f"""{discord_id} was awarded the {color.lower()} belt!""")
+    except Exception as error:
+        logging.log(logging.WARNING, 'query error: {}'.format(error))
+        await ctx.send(f"""An error occurred awarding a belt. Are you sure the belt is a supported color, and the recipient was\
+given as a discord ID like username#1234 """)
 
 
 @bot.command()
