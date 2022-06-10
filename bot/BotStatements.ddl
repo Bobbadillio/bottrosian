@@ -38,3 +38,12 @@ select * from information_schema.tables;
    information_schema.columns
  WHERE
   table_name = 'authenticated_users';
+
+SELECT discord_id AS discord, GREATEST(awarded_belt, chesscom_belt, lichess_belt) AS belt,
+    chesscom_username, last_chesscom_elo AS chesscom_elo, lichess_username, last_lichess_elo,
+       chesscom_username, lichess_username
+
+        AS lichess_elo FROM authenticated_users
+    NATURAL LEFT JOIN chesscom_profiles
+    NATURAL LEFT JOIN lichess_profiles
+    NATURAL LEFT JOIN mod_profiles;

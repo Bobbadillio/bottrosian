@@ -262,10 +262,10 @@ async def profile(ctx, *args):
     message_to_send.append(f"Belt: {belt}")
     if chesscom_username is not None:
         rating = "provisional" if chesscom_rapid is None else chesscom_rapid
-        message_to_send.append(f"Chess.com rapid: {rating}")
+        message_to_send.append(f"Chess.com Rapid: {rating}")
     if lichess_username is not None:
         rating = "provisional" if lichess_classical is None else lichess_classical
-        message_to_send.append(f"Lichess classical: {rating}")
+        message_to_send.append(f"Lichess Classical: {rating}")
 
     final_message = '\n'.join(message_to_send)
     await ctx.send(f"{final_message} ")
@@ -328,7 +328,7 @@ async def award_belt(ctx, discord_id, color):
 
     pg = Postgres(DATABASE_URL)
     pg.query("""INSERT INTO mod_profiles VALUES (%s, %s) ON CONFLICT (discord_id) 
-        DO UPDATE SET awarded_belt=EXCLUDED.awarded_belt; """, (discord_id, color))
+        DO UPDATE SET awarded_belt=EXCLUDED.awarded_belt; """, (discord_id, color.strip().capitalize()))
 
     await ctx.send(f"""{discord_id} was awarded the {color.lower()} belt!""")
 
