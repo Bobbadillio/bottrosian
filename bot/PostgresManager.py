@@ -39,7 +39,7 @@ class Postgres(object):
                     return None
         except Exception as error:
             logging.log(logging.WARNING, 'error executing query "{}", error: {}'.format(query, error))
-            return None
+            raise error
         else:
             return result
 

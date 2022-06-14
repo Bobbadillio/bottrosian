@@ -38,7 +38,7 @@ CHESS_COM_BELTS = [
 
 LICHESS_BELTS = [
     (2400, "Black"),
-    (2200, "Red"),
+    (2250, "Red"),
     (2100, "Brown"),
     (2000, "Purple"),
     (1800, "Blue"),
