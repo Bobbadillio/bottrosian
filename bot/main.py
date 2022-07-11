@@ -249,12 +249,17 @@ async def profile(ctx, *args):
     if len(args)>0:
         discord_id_lookup = args[0]
 
+
     profile_result = pg.query("""SELECT discord_id AS discord, GREATEST(awarded_belt, chesscom_belt, lichess_belt) AS belt, 
     chesscom_username, last_chesscom_elo AS chesscom_elo, lichess_username, last_lichess_elo AS lichess_elo FROM authenticated_users 
     NATURAL LEFT JOIN chesscom_profiles 
     NATURAL LEFT JOIN lichess_profiles 
     NATURAL LEFT JOIN mod_profiles 
     WHERE discord_id = %s""", (discord_id_lookup,))
+
+    if len(profile_result)==0:
+        await ctx.send(f"discord user {discord_id_lookup} doesn't appear to be linked to an account. Please try the !lichess or !chess commands.")
+        return
 
     message_to_send = []
     discord_id, belt, chesscom_username, chesscom_rapid, lichess_username, lichess_classical = profile_result[0]
