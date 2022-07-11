@@ -282,12 +282,12 @@ async def top(ctx):
     """this command returns a list of the top 10 rated players in the dojo based on chess.com rapid and lichess classical. usage: !top"""
     pg = Postgres(DATABASE_URL)
     chesscom_top_headers = ["chess.com username", "chess.com rapid"]
-    chesscom_results = pg.query("""select chesscom_username as username, last_chesscom_elo as elo from chesscom_profiles order by elo desc limit 10;""")
+    chesscom_results = pg.query("""select chesscom_username as username, last_chesscom_elo as elo from chesscom_profiles where last_chesscom_elo IS NOT NULL order by elo desc limit 10;""")
     await ctx.send(f"```{tabulate.tabulate(chesscom_results, headers=chesscom_top_headers)}```\n ")
 
     lichess_top_headers = ["lichess username", "lichess classical"]
     lichess_results = pg.query(
-        """select lichess_username as username, last_lichess_elo as elo from lichess_profiles order by elo desc limit 10;""")
+        """select lichess_username as username, last_lichess_elo as elo from lichess_profiles where last_lichess_elo IS NOT NULL order by elo desc limit 10; ;""")
     await ctx.send(f"```{tabulate.tabulate(lichess_results,headers=lichess_top_headers)}```\n ")
 
 @bot.command()
