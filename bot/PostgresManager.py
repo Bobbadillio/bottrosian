@@ -6,7 +6,7 @@ class Postgres(object):
     _instance = None
 
     def __new__(cls,url):
-        if cls._instance is None or (cls._instance.status != 0):
+        if cls._instance is None or (Postgres._instance.closed > 0):
             cls._instance = object.__new__(cls)
             try:
                 connection = Postgres._instance.connection = psycopg2.connect(url, sslmode='require')
