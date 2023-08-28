@@ -126,6 +126,8 @@ async def update(ctx):
     pg = Postgres(DATABASE_URL)
     author = str(ctx.author)
 
+    logging.log(logging.WARNING, f'query for: {author}')
+
     profile_result = pg.query("""SELECT GREATEST(awarded_belt, chesscom_belt) AS belt, 
     chesscom_username, last_chesscom_elo AS chesscom_elo FROM authenticated_users 
     NATURAL LEFT JOIN chesscom_profiles 
